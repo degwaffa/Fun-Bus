@@ -77,6 +77,7 @@
   .dh span{font-weight:400;color:var(--muted);font-size:13px}
   .slot{display:flex;gap:10px;padding:8px 12px;align-items:flex-start}
   .editable .slot{cursor:pointer}
+  .editable .slot.noruns{cursor:default}
   .slot+.slot{border-top:1px dashed var(--line)}
   .editable .slot:hover{background:var(--hover)}
   .lab{flex:none;width:30px;font-size:12px;font-weight:700;color:var(--muted);padding-top:4px}
@@ -300,31 +301,34 @@ let cur = (()=>{ const t=new Date(); if(t.getDay()===0) t.setDate(t.getDate()+1)
 
 // ---------- School term dates (Bedales Senior) ----------
 // From "Bedales Senior School Term & Key Dates 2026 – 2027" (corrected 07.07.26).
-// Each term: weekdays from `first` to `last` are school days, except the `off` ranges (half terms,
-// long leaves). `notes` puts a short label on a day. Weekdays between terms are holidays; days after
+// Each term: days (Mon–Sat) from `first` to `last` are school days, except the `off` ranges (half
+// terms, long leaves, including their Saturdays). `notes` puts a short label on a day. Weekdays between terms are holidays; days after
 // the last term listed are unknown and shown without a label, so add each new year here when it's out.
 const TERMS = [
   {name:"Autumn term", first:"2026-09-08", last:"2026-12-11",
-   off:[{name:"Half term", start:"2026-10-19", end:"2026-10-30"},
-        {name:"Long leave", start:"2026-11-20", end:"2026-11-20"}],
+   off:[{name:"Long leave", start:"2026-09-26", end:"2026-09-27"},
+        {name:"Half term", start:"2026-10-17", end:"2026-11-01"},
+        {name:"Long leave", start:"2026-11-20", end:"2026-11-22"}],
    notes:{"2026-10-16":"Half term from 16:30", "2026-11-19":"Long leave from 16:30",
           "2026-12-11":"Last day: day pupils 13:00"}},
   {name:"Spring term", first:"2027-01-04", last:"2027-03-25",
    off:[{name:"6.2 mocks only", start:"2027-01-04", end:"2027-01-05"},
-        {name:"Half term", start:"2027-02-12", end:"2027-02-19"}],
+        {name:"Long leave", start:"2027-01-23", end:"2027-01-24"},
+        {name:"Half term", start:"2027-02-12", end:"2027-02-21"},
+        {name:"Long leave", start:"2027-03-13", end:"2027-03-14"}],
    notes:{"2027-01-06":"Term starts 09:00", "2027-01-22":"Long leave weekend from 16:30",
           "2027-02-11":"Half term from 16:30", "2027-03-12":"Long leave weekend from 16:30",
           "2027-03-25":"Last day: ends 16:30"}},
   {name:"Summer term", first:"2027-04-19", last:"2027-07-01",
-   off:[{name:"Long leave", start:"2027-05-03", end:"2027-05-03"},
-        {name:"Half term", start:"2027-05-31", end:"2027-06-04"}],
+   off:[{name:"Long leave", start:"2027-05-01", end:"2027-05-03"},
+        {name:"Half term", start:"2027-05-29", end:"2027-06-06"}],
    notes:{"2027-04-19":"Term starts 09:00", "2027-04-30":"Long leave from 16:30",
           "2027-05-28":"Half term from 16:30", "2027-06-26":"Parents' Day",
           "2027-07-01":"Last day: Blocks 3–4 12:45, 5 & 6.1 13:30"}},
 ];
 const TERMS_FIRST = TERMS.reduce((m,t)=>!m||t.first<m?t.first:m, "");
 const TERMS_LAST  = TERMS.reduce((m,t)=>t.last>m?t.last:m, "");
-// For a weekday: {type: school | break | holiday | unknown, label}
+// For a day: {type: school | break | holiday | unknown, label}
 function schoolDay(k){
   const t = TERMS.find(t=>k>=t.first && k<=t.last);
   if(t){
@@ -335,7 +339,7 @@ function schoolDay(k){
   if(!TERMS_FIRST || k<TERMS_FIRST || k>TERMS_LAST) return {type:"unknown", label:""};
   return {type:"holiday", label:"Holidays"};
 }
-const dayNote = k => { const t = TERMS.find(t=>t.notes[k]); return t ? t.notes[k] : ""; };
+const noSchool = k => { const t = schoolDay(k).type; return t==="break" || t==="holiday"; };
 function weekTerm(k){
   const days = [0,1,2,3,4].map(i=>schoolDay(keyOf(addDays(k,i)))); // Mon–Fri
   const types = new Set(days.map(d=>d.type));
@@ -444,9 +448,10 @@ function slotHtml(day,p,s){
   }
   return `<div class="slot" data-d="${day}" data-p="${p}" tabindex="0" role="button" aria-label="Edit ${day} ${p.toUpperCase()}"><div class="lab">${p.toUpperCase()}</div><div class="runs">${body}</div></div>`;
 }
-function countRuns(days){
+function countRuns(days, wk){
   const c = {}; Object.keys(FAM).forEach(f=>c[f]=0);
-  for(const day of DAYS) for(const p of ["am","pm"]){
+  for(const [i,day] of DAYS.entries()) for(const p of ["am","pm"]){
+    if(wk && noSchool(keyOf(addDays(wk,i)))) continue;
     const s = days[day][p]; if(s.off||s.own) continue;
     for(const r of s.runs){
       if(!r.kids.length) continue;
@@ -500,16 +505,17 @@ function render(){
   const w = getWeek(cur);
   board.innerHTML = DAYS.map((day,i)=>{
     const dk = keyOf(addDays(cur,i));
-    const sd = i<5 ? schoolDay(dk) : {type:"", label:dayNote(dk)};  // Saturdays: just any note
+    const sd = schoolDay(dk);
     const off = sd.type==="break" || sd.type==="holiday";
     const note = off ? (sd.label && sd.label!=="Holidays" ? `No school · ${sd.label}` : "No school") : sd.label;
     return `<div class="day${off?" noschool":""}"><div class="dh"><b>${day}${note?`<em>${esc(note)}</em>`:""}</b><span>${fmtShort(addDays(cur,i))}</span></div>
-      ${slotHtml(day,"am",w.days[day].am)}${slotHtml(day,"pm",w.days[day].pm)}</div>`; }).join("");
+      ${off ? `<div class="slot noruns"><div class="muted">No runs needed</div></div>`
+            : slotHtml(day,"am",w.days[day].am)+slotHtml(day,"pm",w.days[day].pm)}</div>`; }).join("");
 
-  const tw = countRuns(w.days);
+  const tw = countRuns(w.days, cur);
   const all = {}; Object.keys(FAM).forEach(f=>all[f]=0);
   const keys = new Set([...Object.keys(weeks).filter(k=>k<=cur), cur]);
-  for(const k of keys){ const c=countRuns(getWeek(k).days); for(const f in c) all[f]+=c[f]; }
+  for(const k of keys){ const c=countRuns(getWeek(k).days, k); for(const f in c) all[f]+=c[f]; }
   const max = Math.max(1,...Object.values(all));
   document.getElementById("tally").innerHTML = `<h3>Runs per family <span class="note">(this week · all planned weeks)</span></h3><div class="bars">${
     Object.keys(FAM).map(f=>`<div class="bar"><span class="nm">${esc(FAM[f].name)}</span>
@@ -735,7 +741,7 @@ document.getElementById("board").addEventListener("click", e=>{
     changeWeek(w=>{ const r=w.days[day][p].runs[+i]; if(r){ r.driver=me; r.swap=false; if(p==="am") r.time=amTimeFor(me); } }, `took ${day} ${p.toUpperCase()} 🙌`);
     return;
   }
-  const s = e.target.closest(".slot");
+  const s = e.target.closest(".slot[data-d]");
   if(s) openSlot(s.dataset.d, s.dataset.p);
 });
 document.getElementById("prev").onclick = ()=>{ if(cur<=FIRST_WEEK) return; cur=mondayOf(addDays(cur,-7)); render(); };
@@ -764,8 +770,9 @@ window.addEventListener("offline", render);
 // ---------- WhatsApp text (in the group's usual format) ----------
 function shareText(){
   const w = getWeek(cur), out = [`Week commencing ${fmtLong(parseKey(cur))}`];
-  for(const day of DAYS) for(const p of ["am","pm"]){
+  for(const [i,day] of DAYS.entries()) for(const p of ["am","pm"]){
     const s = w.days[day][p], lab = `${day} ${p.toUpperCase()}`;
+    if(noSchool(keyOf(addDays(cur,i)))){ if(p==="am") out.push(`${day} - no school`); continue; }
     if(s.off) continue;
     if(s.own){ out.push(`${lab} - everyone takes their own`); continue; }
     const runs = s.runs.filter(r=>r.kids.length);
