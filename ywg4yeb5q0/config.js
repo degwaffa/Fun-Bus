@@ -7,7 +7,3 @@ window.FUN_BUS_FIREBASE = {
   appId: "1:987582606038:web:38afc030c59ae81d44f777"
 };
 
-// Morning runs: when a driver is picked, the departure time is set to theirs. Anyone not listed leaves at 7.30.
-window.FUN_BUS_AM_TIMES = {
-  "Natty": "8.00"
-};

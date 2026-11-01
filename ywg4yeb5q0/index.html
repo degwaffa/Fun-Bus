@@ -146,6 +146,7 @@
   <div class="tools">
     <button class="primary w-only" id="share">Share to WhatsApp</button>
     <button id="copyLast" class="w-only">Copy last week</button>
+    <button id="amTimesBtn" class="w-only">Morning times</button>
   </div>
   <main id="main"><div id="banner"></div><div id="board"></div></main>
   <section class="panel" id="tallyPanel"><div class="box" id="tally"></div></section>
@@ -164,8 +165,10 @@
 
 const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const AM_DEFAULT = "7.30";
-// Morning departure time for each driver (set in config.js); anyone not listed leaves at AM_DEFAULT
-const amTimeFor = d => (window.FUN_BUS_AM_TIMES || {})[d] || AM_DEFAULT;
+// Morning departure time for each driver, kept in the club's database (Morning times button);
+// anyone without one leaves at AM_DEFAULT
+let amTimes = {};
+const amTimeFor = d => amTimes[d] || AM_DEFAULT;
 const SWATCH = ["f0","f1","f2","f3"];
 const clone = o => JSON.parse(JSON.stringify(o));
 const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -249,6 +252,7 @@ if(configured){
 const P = {
   club:  id => `clubs/${id}/meta/club`,
   tpl:   id => `clubs/${id}/meta/template`,
+  settings: id => `clubs/${id}/meta/settings`,
   weeks: id => `clubs/${id}/weeks`,
 };
 async function clubIdFor(code){
@@ -592,6 +596,16 @@ ov.addEventListener("click", async e=>{
   if(act==="confirm"){ const fn=pending; hideSheet(); if(fn) fn(); return; }
   if(act==="who"){ me=b.dataset.who; local.set("fb_me", me); hideSheet(); render(); return; }
   if(act==="newclub") return askNewClub();
+  if(act==="saveAmTimes"){
+    const t = {};
+    ov.querySelectorAll("input[data-who]").forEach(i=>{ const v=i.value.trim(); if(v && v!==AM_DEFAULT && PEOPLE.includes(i.dataset.who)) t[i.dataset.who]=v.slice(0,10); });
+    amTimes = t; hideSheet();
+    fs.doc(P.settings(club)).set({amTimes:t}).then(()=>toast("Morning times saved.")).catch(e=>{
+      if(e && e.code==="permission-denied") toast("The database refused this. Publish the latest rules from firestore.rules in Firebase, then try again.");
+      else writeFailed(e);
+    });
+    return;
+  }
   if(act==="backtocode") return askCode();
   if(act==="copytext"){
     try{ await navigator.clipboard.writeText(document.getElementById("shareTxt").value); b.textContent="✓ Copied"; }
@@ -653,6 +667,13 @@ document.getElementById("board").addEventListener("click", e=>{
 document.getElementById("prev").onclick = ()=>{ if(cur<=FIRST_WEEK) return; cur=mondayOf(addDays(cur,-7)); render(); };
 document.getElementById("next").onclick = ()=>{ cur=mondayOf(addDays(cur,7)); render(); };
 document.getElementById("meSel").onchange = e=>{ me=e.target.value||null; local.set("fb_me", me); render(); };
+document.getElementById("amTimesBtn").onclick = ()=>{
+  showSheet(`<div class="sheet" role="dialog" aria-modal="true"><h2>Morning times <button class="x" data-act="dismiss" aria-label="Close">×</button></h2>
+    <p class="note">When a driver is picked for a morning run, the run is set to leave at their time. Leave a box empty for ${AM_DEFAULT}.</p>
+    ${PEOPLE.map((d,i)=>`<div class="row"><label for="amt${i}" style="width:90px;color:${col(famOfDriver(d))}">${esc(d)}</label>
+      <input class="t" id="amt${i}" type="text" inputmode="decimal" data-who="${esc(d)}" placeholder="${AM_DEFAULT}" value="${esc(amTimes[d]||"")}"></div>`).join("")}
+    <button class="btn go" data-act="saveAmTimes">Save</button></div>`);
+};
 document.getElementById("copyLast").onclick = ()=>{
   const prev = weeks[mondayOf(addDays(cur,-7))];
   if(!prev || cur<=FIRST_WEEK) return toast("There's no plan saved for last week to copy.");
@@ -732,6 +753,12 @@ function openClub(cfgData){
     template = v && v.days ? v.days : basicTemplate();
     settle("tpl", snap.metadata);
   }, onErr));
+  // Morning times are optional: if they can't be read, everyone just leaves at the default time
+  amTimes = {};
+  unsubs.push(fs.doc(P.settings(club)).onSnapshot(snap=>{
+    const v = snap.exists ? snap.data() : null;
+    amTimes = v && v.amTimes && typeof v.amTimes==="object" ? v.amTimes : {};
+  }, ()=>{ amTimes = {}; }));
   render();
   if(!me) askWho();
 }
