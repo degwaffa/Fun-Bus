@@ -299,26 +299,43 @@ const FIRST_WEEK = "2026-11-02";
 let cur = (()=>{ const t=new Date(); if(t.getDay()===0) t.setDate(t.getDate()+1); const k=mondayOf(t); return k<FIRST_WEEK ? FIRST_WEEK : k; })();
 
 // ---------- School term dates (Bedales Senior) ----------
-// From bedales.org.uk/term-dates. Each term runs start..end (inclusive); breaks are days off inside it.
-// Weekdays outside every term are holidays, up to the end of the last term listed here; days after
-// that are unknown and shown without a label, so add each new term here when the school publishes it.
+// From "Bedales Senior School Term & Key Dates 2026 – 2027" (corrected 07.07.26).
+// Each term: weekdays from `first` to `last` are school days, except the `off` ranges (half terms,
+// long leaves). `notes` puts a short label on a day. Weekdays between terms are holidays; days after
+// the last term listed are unknown and shown without a label, so add each new year here when it's out.
 const TERMS = [
-  {name:"Autumn term", start:"2026-09-06", end:"2026-12-11", endNote:"term ends 13:00",
-   breaks:[{name:"Half term", start:"2026-10-16", end:"2026-11-01"}]},
+  {name:"Autumn term", first:"2026-09-08", last:"2026-12-11",
+   off:[{name:"Half term", start:"2026-10-19", end:"2026-10-30"},
+        {name:"Long leave", start:"2026-11-20", end:"2026-11-20"}],
+   notes:{"2026-10-16":"Half term from 16:30", "2026-11-19":"Long leave from 16:30",
+          "2026-12-11":"Last day: day pupils 13:00"}},
+  {name:"Spring term", first:"2027-01-04", last:"2027-03-25",
+   off:[{name:"6.2 mocks only", start:"2027-01-04", end:"2027-01-05"},
+        {name:"Half term", start:"2027-02-12", end:"2027-02-19"}],
+   notes:{"2027-01-06":"Term starts 09:00", "2027-01-22":"Long leave weekend from 16:30",
+          "2027-02-11":"Half term from 16:30", "2027-03-12":"Long leave weekend from 16:30",
+          "2027-03-25":"Last day: ends 16:30"}},
+  {name:"Summer term", first:"2027-04-19", last:"2027-07-01",
+   off:[{name:"Long leave", start:"2027-05-03", end:"2027-05-03"},
+        {name:"Half term", start:"2027-05-31", end:"2027-06-04"}],
+   notes:{"2027-04-19":"Term starts 09:00", "2027-04-30":"Long leave from 16:30",
+          "2027-05-28":"Half term from 16:30", "2027-06-26":"Parents' Day",
+          "2027-07-01":"Last day: Blocks 3–4 12:45, 5 & 6.1 13:30"}},
 ];
+const TERMS_FIRST = TERMS.reduce((m,t)=>!m||t.first<m?t.first:m, "");
+const TERMS_LAST  = TERMS.reduce((m,t)=>t.last>m?t.last:m, "");
+// For a weekday: {type: school | break | holiday | unknown, label}
 function schoolDay(k){
-  const last = TERMS.reduce((m,t)=>t.end>m?t.end:m, "");
-  for(const t of TERMS){
-    if(k<t.start || k>t.end) continue;
-    const b = (t.breaks||[]).find(b=>k>=b.start && k<=b.end);
+  const t = TERMS.find(t=>k>=t.first && k<=t.last);
+  if(t){
+    const b = t.off.find(b=>k>=b.start && k<=b.end);
     if(b) return {type:"break", label:b.name};
-    return {type:"school", label: k===t.end ? (t.endNote ? `Last day, ${t.endNote}` : `Last day of ${t.name.toLowerCase()}`) : k===t.start ? `${t.name} starts` : ""};
+    return {type:"school", label:t.notes[k]||""};
   }
-  if(!last || k>last) return {type:"unknown", label:""};
-  const first = TERMS.reduce((m,t)=>!m||t.start<m?t.start:m, "");
-  if(k<first) return {type:"unknown", label:""};
+  if(!TERMS_FIRST || k<TERMS_FIRST || k>TERMS_LAST) return {type:"unknown", label:""};
   return {type:"holiday", label:"Holidays"};
 }
+const dayNote = k => { const t = TERMS.find(t=>t.notes[k]); return t ? t.notes[k] : ""; };
 function weekTerm(k){
   const days = [0,1,2,3,4].map(i=>schoolDay(keyOf(addDays(k,i)))); // Mon–Fri
   const types = new Set(days.map(d=>d.type));
@@ -482,9 +499,10 @@ function render(){
 
   const w = getWeek(cur);
   board.innerHTML = DAYS.map((day,i)=>{
-    const sd = i<5 ? schoolDay(keyOf(addDays(cur,i))) : {type:"", label:""};
+    const dk = keyOf(addDays(cur,i));
+    const sd = i<5 ? schoolDay(dk) : {type:"", label:dayNote(dk)};  // Saturdays: just any note
     const off = sd.type==="break" || sd.type==="holiday";
-    const note = off ? "No school" : sd.label;
+    const note = off ? (sd.label && sd.label!=="Holidays" ? `No school · ${sd.label}` : "No school") : sd.label;
     return `<div class="day${off?" noschool":""}"><div class="dh"><b>${day}${note?`<em>${esc(note)}</em>`:""}</b><span>${fmtShort(addDays(cur,i))}</span></div>
       ${slotHtml(day,"am",w.days[day].am)}${slotHtml(day,"pm",w.days[day].pm)}</div>`; }).join("");
 
