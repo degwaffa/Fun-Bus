@@ -146,8 +146,6 @@
   <div class="tools">
     <button class="primary w-only" id="share">Share to WhatsApp</button>
     <button id="copyLast" class="w-only">Copy last week</button>
-    <button id="reset" class="w-only">Reset to usual week</button>
-    <button id="saveTpl" class="w-only">Save as usual week</button>
   </div>
   <main id="main"><div id="banner"></div><div id="board"></div></main>
   <section class="panel" id="tallyPanel"><div class="box" id="tally"></div></section>
@@ -294,8 +292,8 @@ function fresh(days){
   }
   return d;
 }
-// A week nobody has touched yet starts blank: usual times, but no drivers and no kids on any run.
-// It's only saved once someone changes it. "Reset to usual week" fills it from the usual week.
+// A week nobody has touched yet starts blank: default times, but no drivers and no kids on any run.
+// It's only saved once someone changes it.
 function blankDays(){
   const d = {};
   for(const day of DAYS){ d[day] = {}; for(const p of ["am","pm"]){
@@ -654,15 +652,6 @@ document.getElementById("copyLast").onclick = ()=>{
   const prev = weeks[mondayOf(addDays(cur,-7))];
   if(!prev || cur<=FIRST_WEEK) return toast("There's no plan saved for last week to copy.");
   askConfirm("Replace this week with a copy of last week?", "Copy last week", ()=>changeWeek(w=>{ w.days=fresh(prev.days); }, "copied last week"));
-};
-document.getElementById("reset").onclick = ()=>{
-  askConfirm("Replace this week with the usual week?", "Reset this week", ()=>changeWeek(w=>{ w.days=fresh(template); }, "reset to the usual week"));
-};
-document.getElementById("saveTpl").onclick = ()=>{
-  askConfirm("Make this week the usual week that future weeks start from?", "Save as usual week", ()=>{
-    template = fresh(getWeek(cur).days); saveTemplate();
-    changeWeek(()=>{}, "saved this as the usual week");
-  });
 };
 document.getElementById("leave").onclick = ()=>{
   askConfirm("Forget the club code on this phone? You'll need to enter it again to see the board.", "Forget the code", ()=>{
