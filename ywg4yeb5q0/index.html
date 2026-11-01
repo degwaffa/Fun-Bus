@@ -75,6 +75,16 @@
   .day{background:var(--card);border-radius:14px;margin-bottom:10px;box-shadow:0 1px 3px var(--shadow);overflow:hidden}
   .dh{padding:8px 12px;font-weight:700;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
   .dh span{font-weight:400;color:var(--muted);font-size:13px}
+  .dh .notebtn{border:0;background:none;cursor:pointer;font-size:15px;padding:0 6px;margin-right:2px;opacity:.55}
+  .dh .notebtn:hover,.dh .notebtn:focus-visible{opacity:1}
+  .dmsg{container-type:inline-size;overflow:hidden;white-space:nowrap;background:var(--amberbg);color:var(--amber);font-size:14px;font-weight:600;border-bottom:1px solid var(--line);cursor:pointer}
+  .dmsg .track{display:inline-flex;animation:ticker var(--t,12s) linear infinite}
+  .dmsg .track span{min-width:100cqw;padding:6px 3em 6px 12px}
+  .dmsg:hover .track{animation-play-state:paused}
+  @keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  @media (prefers-reduced-motion: reduce){
+    .dmsg{white-space:normal}.dmsg .track{animation:none;display:block}.dmsg .track span{min-width:0;display:block;padding:6px 12px}.dmsg .track span+span{display:none}
+  }
   .slot{display:flex;gap:10px;padding:8px 12px;align-items:flex-start}
   .editable .slot{cursor:pointer}
   .editable .slot.noruns{cursor:default}
@@ -502,7 +512,10 @@ function render(){
     const sd = schoolDay(dk);
     const off = sd.type==="break" || sd.type==="holiday";
     const note = off ? (sd.label && sd.label!=="Holidays" ? `No school · ${sd.label}` : "No school") : sd.label;
-    return `<div class="day${off?" noschool":""}"><div class="dh"><b>${day}${note?`<em>${esc(note)}</em>`:""}</b><span>${fmtShort(addDays(cur,i))}</span></div>
+    const msg = (w.days[day].note||"").trim();
+    const banner = msg ? `<div class="dmsg" data-note="${day}" role="button" tabindex="0" aria-label="Note for ${day}: ${esc(msg)}. Tap to change."
+        style="--t:${Math.max(8, Math.round(msg.length*0.22))}s"><div class="track" aria-hidden="true"><span>📝 ${esc(msg)}</span><span>📝 ${esc(msg)}</span></div></div>` : "";
+    return `<div class="day${off?" noschool":""}"><div class="dh"><b>${day}${note?`<em>${esc(note)}</em>`:""}</b><span><button class="notebtn" data-note="${day}" aria-label="${msg?"Change":"Add a"} note for ${day}">📝</button>${fmtShort(addDays(cur,i))}</span></div>${banner}
       ${off ? `<div class="slot noruns"><div class="muted">No runs needed</div></div>`
             : slotHtml(day,"am",w.days[day].am)+slotHtml(day,"pm",w.days[day].pm)}</div>`; }).join("");
 
@@ -666,6 +679,8 @@ ov.addEventListener("click", async e=>{
   if(act==="confirm"){ const fn=pending; hideSheet(); if(fn) fn(); return; }
   if(act==="who"){ me=b.dataset.who; local.set("fb_me", me); hideSheet(); render(); return; }
   if(act==="newclub") return askNewClub();
+  if(act==="saveNote") return setNote(document.getElementById("noteTxt").value);
+  if(act==="clearNote") return setNote("");
   if(act==="backtocode") return askCode();
   if(act==="copytext"){
     try{ await navigator.clipboard.writeText(document.getElementById("shareTxt").value); b.textContent="✓ Copied"; }
@@ -732,12 +747,15 @@ function heartStream(){
 }
 document.addEventListener("keydown", e=>{
   if(e.key==="Escape" && !ov.hidden && !locked) return ctx ? closeSlot() : hideSheet();
+  if((e.key==="Enter"||e.key===" ") && e.target.classList?.contains("dmsg") && ready()){ e.preventDefault(); return askNote(e.target.dataset.note); }
   if((e.key==="Enter"||e.key===" ") && e.target.classList?.contains("slot") && ready()){ e.preventDefault(); openSlot(e.target.dataset.d, e.target.dataset.p); }
 });
 
 // ---------- Board interactions ----------
 document.getElementById("board").addEventListener("click", e=>{
   if(!ready()) return;
+  const n = e.target.closest("[data-note]");
+  if(n) return askNote(n.dataset.note);
   const c = e.target.closest("[data-claim]");
   if(c){
     if(!me) return askWho();
@@ -760,10 +778,37 @@ document.getElementById("leave").onclick = ()=>{
 window.addEventListener("online", render);
 window.addEventListener("offline", render);
 
+// ---------- Day notes ----------
+// A short note for one day, shown as a scrolling banner under that day. Anyone can add, change or remove it.
+let noteDay = null;
+function askNote(day){
+  noteDay = day;
+  const curNote = getWeek(cur).days[day].note || "";
+  const i = DAYS.indexOf(day);
+  showSheet(`<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="noteTitle">
+    <h2 id="noteTitle">Note for ${day} ${fmtShort(addDays(cur,i))} <button class="x" data-act="dismiss" aria-label="Close">×</button></h2>
+    <textarea class="short" id="noteTxt" maxlength="140" placeholder="e.g. Band night, kids finish at 21:00" style="font:15px/1.4 inherit;height:90px">${esc(curNote)}</textarea>
+    <p class="hint">Everyone sees this as a scrolling banner under ${day}.</p>
+    <div class="row" style="margin-top:8px">
+      ${curNote?`<button class="btn" data-act="clearNote">Remove note</button>`:""}
+      <button class="btn go" data-act="saveNote">Save</button>
+    </div></div>`);
+  setTimeout(()=>document.getElementById("noteTxt")?.focus(), 50);
+}
+function setNote(text){
+  const day = noteDay; noteDay = null; hideSheet();
+  if(!day) return;
+  const before = (getWeek(cur).days[day].note || "").trim();
+  text = (text||"").trim().slice(0,140);
+  if(text===before) return;
+  changeWeek(w=>{ if(text) w.days[day].note = text; else delete w.days[day].note; },
+             text ? `${before?"changed":"added"} the ${day} note` : `removed the ${day} note`);
+}
+
 // ---------- WhatsApp text (in the group's usual format) ----------
 function shareText(){
   const w = getWeek(cur), out = [`Week commencing ${fmtLong(parseKey(cur))}`];
-  for(const [i,day] of DAYS.entries()) for(const p of ["am","pm"]){
+  for(const [i,day] of DAYS.entries()){ for(const p of ["am","pm"]){
     const s = w.days[day][p], lab = `${day} ${p.toUpperCase()}`;
     if(noSchool(keyOf(addDays(cur,i)))){ if(p==="am") out.push(`${day} - no school`); continue; }
     if(s.off) continue;
@@ -781,6 +826,8 @@ function shareText(){
     } else {
       out.push(`${lab} ` + runs.map(r=>`(${hhmm(r.time,p)} ${kidList(r.kids)}) - ${r.driver||"driver needed"}${cover(r)}`).join(" "));
     }
+  }
+    if((w.days[day].note||"").trim()) out.push(`📝 ${day}: ${w.days[day].note.trim()}`);
   }
   out.push("", `Board: ${location.origin}${location.pathname}`);
   return out.join("\n");
