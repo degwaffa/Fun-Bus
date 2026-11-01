@@ -164,11 +164,21 @@
 // in the club's database, which only opens with the club code.
 
 const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-const AM_DEFAULT = "7.30";
+const AM_DEFAULT = "07:30", PM_DEFAULT = "18:00";
+// Times are shown and saved as 24-hour HH:MM. Older or typed times like "7.30", "730" or "6"
+// are understood too; on an evening run, an hour before 12 means the evening (6.00 → 18:00).
+function hhmm(t, p){
+  const m = String(t??"").trim().match(/^(\d{1,2})(?:[.:h]?(\d{2}))?$/);
+  if(!m) return String(t??"").trim();
+  let h = +m[1]; const mi = +(m[2]||0);
+  if(p==="pm" && h<12) h += 12;
+  if(h>23 || mi>59) return String(t).trim();
+  return String(h).padStart(2,"0")+":"+String(mi).padStart(2,"0");
+}
 // Morning departure time for each driver, kept in the club's database (Morning times button);
 // anyone without one leaves at AM_DEFAULT
 let amTimes = {};
-const amTimeFor = d => amTimes[d] || AM_DEFAULT;
+const amTimeFor = d => hhmm(amTimes[d] || AM_DEFAULT, "am");
 const SWATCH = ["f0","f1","f2","f3"];
 const clone = o => JSON.parse(JSON.stringify(o));
 const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -193,7 +203,7 @@ const run  = (time, driver, kids=[...KIDS]) => ({time, driver, kids, swap:false}
 const slot = (...runs) => ({runs, out:{}, own:false, off:false});
 function basicTemplate(){
   const t = {};
-  DAYS.forEach((d,i)=>{ t[d] = {am:slot(run(AM_DEFAULT, PEOPLE[i%PEOPLE.length])), pm:slot(run("6.00", PEOPLE[(i+1)%PEOPLE.length]))}; });
+  DAYS.forEach((d,i)=>{ t[d] = {am:slot(run(AM_DEFAULT, PEOPLE[i%PEOPLE.length])), pm:slot(run(PM_DEFAULT, PEOPLE[(i+1)%PEOPLE.length]))}; });
   return t;
 }
 
@@ -304,7 +314,7 @@ function blankDays(){
   const d = {};
   for(const day of DAYS){ d[day] = {}; for(const p of ["am","pm"]){
     const t = template && template[day] && template[day][p] && template[day][p].runs[0];
-    d[day][p] = slot(run(t ? t.time : (p==="am" ? AM_DEFAULT : "6.00"), "", []));
+    d[day][p] = slot(run(hhmm(t ? t.time : (p==="am" ? AM_DEFAULT : PM_DEFAULT), p), "", []));
   } }
   return d;
 }
@@ -353,7 +363,7 @@ const drvChip = d => { if(!d) return `<span class="drv" style="background:var(--
 function runHtml(day,p,i,s,r){
   const solo = p==="pm" && r.kids.length===1;
   return `<div class="run ${r.swap?'swap':''}">
-    <span class="time">${esc(r.time)}</span>${drvChip(r.driver)}
+    <span class="time">${esc(hhmm(r.time,p))}</span>${drvChip(r.driver)}
     <span>${r.kids.map(kidChip).join(" ")}</span>
     ${solo?'<span class="tag">own pickup</span>':''}
     ${r.swap?`<span class="note">needs cover</span><button class="claim" data-claim="${day}|${p}|${i}">🙋 I'll take it</button>`:''}
@@ -405,7 +415,7 @@ function renderStatus(){
 function render(){
   renderStatus();
   const on = ready();
-  document.getElementById("wc").textContent = `w/c ${fmtShort(parseKey(cur))}`;
+  document.getElementById("wc").textContent = `w/c ${fmtShort(parseKey(cur))} ${parseKey(cur).getFullYear()}`;
   document.getElementById("prev").disabled = cur<=FIRST_WEEK;
   document.querySelectorAll(".w-only").forEach(b=>b.hidden=!on);
   document.getElementById("main").classList.toggle("editable", on);
@@ -548,7 +558,7 @@ function drawSlot(){
   const cars = s.runs.map((r,i)=>`
     <div class="car ${r.swap?'swap':''}">
       ${s.runs.length>1?`<div class="sec" style="margin-top:0">Car ${i+1}</div>`:""}
-      <div class="row"><label for="t${i}">Time</label><input class="t" id="t${i}" type="text" inputmode="decimal" data-act="time" data-i="${i}" value="${esc(r.time)}">
+      <div class="row"><label for="t${i}">Time</label><input class="t" id="t${i}" type="text" inputmode="decimal" data-act="time" data-i="${i}" value="${esc(hhmm(r.time,p))}">
         <label for="d${i}">Driver</label><select id="d${i}" data-act="driver" data-i="${i}">${r.driver?"":`<option value="" selected>— choose —</option>`}${DRIVERS.map(d=>`<option ${d===r.driver?"selected":""}>${esc(d)}</option>`).join("")}</select></div>
       <div class="row"><label>Kids</label>${KIDS.filter(k=>!(k in s.out)).map(k=>{
         const on=r.kids.includes(k), f=famOfKid(k);
@@ -582,7 +592,8 @@ function drawSlot(){
 function closeSlot(){
   const {day,p,s,before} = ctx;
   if(s.runs.length>1) s.runs = s.runs.filter(r=>r.kids.length);
-  if(!s.runs.length) s.runs=[run(p==="am"?AM_DEFAULT:"6.00", me||PEOPLE[0], [])];
+  if(!s.runs.length) s.runs=[run(p==="am"?AM_DEFAULT:PM_DEFAULT, me||PEOPLE[0], [])];
+  s.runs.forEach(r=>{ r.time = hhmm(r.time, p); });
   applyRules(p,s);
   hideSheet();
   if(JSON.stringify(s)!==before) changeWeek(w=>{ w.days[day][p]=s; }, `updated ${day} ${p.toUpperCase()}`);
@@ -598,7 +609,7 @@ ov.addEventListener("click", async e=>{
   if(act==="newclub") return askNewClub();
   if(act==="saveAmTimes"){
     const t = {};
-    ov.querySelectorAll("input[data-who]").forEach(i=>{ const v=i.value.trim(); if(v && v!==AM_DEFAULT && PEOPLE.includes(i.dataset.who)) t[i.dataset.who]=v.slice(0,10); });
+    ov.querySelectorAll("input[data-who]").forEach(i=>{ const v=hhmm(i.value,"am"); if(v && v!==AM_DEFAULT && PEOPLE.includes(i.dataset.who)) t[i.dataset.who]=v.slice(0,10); });
     amTimes = t; hideSheet();
     fs.doc(P.settings(club)).set({amTimes:t}).then(()=>toast("Morning times saved.")).catch(e=>{
       if(e && e.code==="permission-denied") toast("The database refused this. Publish the latest rules from firestore.rules in Firebase, then try again.");
@@ -628,7 +639,7 @@ ov.addEventListener("click", async e=>{
       else { s.out[k]=""; s.runs.forEach(r=>r.kids=r.kids.filter(x=>x!==k)); }
       break;
     case "swap": s.runs[i].swap=!s.runs[i].swap; break;
-    case "addcar": s.runs.push(run("8.00", s.runs[0].driver, [])); break;
+    case "addcar": s.runs.push(run("20:00", s.runs[0].driver, [])); break;
     case "delcar": { const [gone]=s.runs.splice(i,1); s.runs[0].kids=[...new Set([...s.runs[0].kids,...gone.kids])].sort(byKid); break; }
     default: return;
   }
@@ -671,7 +682,7 @@ document.getElementById("amTimesBtn").onclick = ()=>{
   showSheet(`<div class="sheet" role="dialog" aria-modal="true"><h2>Morning times <button class="x" data-act="dismiss" aria-label="Close">×</button></h2>
     <p class="note">When a driver is picked for a morning run, the run is set to leave at their time. Leave a box empty for ${AM_DEFAULT}.</p>
     ${PEOPLE.map((d,i)=>`<div class="row"><label for="amt${i}" style="width:90px;color:${col(famOfDriver(d))}">${esc(d)}</label>
-      <input class="t" id="amt${i}" type="text" inputmode="decimal" data-who="${esc(d)}" placeholder="${AM_DEFAULT}" value="${esc(amTimes[d]||"")}"></div>`).join("")}
+      <input class="t" id="amt${i}" type="text" inputmode="decimal" data-who="${esc(d)}" placeholder="${AM_DEFAULT}" value="${esc(amTimes[d]?hhmm(amTimes[d],"am"):"")}"></div>`).join("")}
     <button class="btn go" data-act="saveAmTimes">Save</button></div>`);
 };
 document.getElementById("copyLast").onclick = ()=>{
@@ -701,11 +712,11 @@ function shareText(){
     if(!runs.length) continue;
     if(runs.length===1){
       const r=runs[0], parts=[];
-      if(p==="pm" || r.time!==AM_DEFAULT) parts.push(r.time);
+      if(p==="pm" || hhmm(r.time,p)!==AM_DEFAULT) parts.push(hhmm(r.time,p));
       if(nn) parts.push(nn);
       out.push(`${lab}${parts.length?` (${parts.join(", ")})`:""} - ${r.driver||"driver needed"}${cover(r)}`);
     } else {
-      out.push(`${lab} ` + runs.map(r=>`(${r.time} ${kidList(r.kids)}) - ${r.driver||"driver needed"}${cover(r)}`).join(" "));
+      out.push(`${lab} ` + runs.map(r=>`(${hhmm(r.time,p)} ${kidList(r.kids)}) - ${r.driver||"driver needed"}${cover(r)}`).join(" "));
     }
   }
   out.push("", `Board: ${location.origin}${location.pathname}`);
