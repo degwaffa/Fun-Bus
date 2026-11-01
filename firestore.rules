@@ -28,15 +28,6 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['days']);
     }
 
-    // Club settings: each driver's morning departure time.
-    match /clubs/{club}/meta/settings {
-      allow get: if clubExists(club);
-      allow create, update: if clubExists(club)
-        && request.resource.data.keys().hasOnly(['amTimes'])
-        && request.resource.data.amTimes is map
-        && request.resource.data.amTimes.size() <= 8;
-    }
-
     // One document per week, keyed by its Monday (YYYY-MM-DD).
     match /clubs/{club}/weeks/{week} {
       allow read: if clubExists(club);
