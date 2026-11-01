@@ -294,8 +294,17 @@ function fresh(days){
   }
   return d;
 }
-// A week nobody has touched yet is shown from the usual week, and only saved once someone changes it
-const getWeek = k => weeks[k] || {days:fresh(template), log:[]};
+// A week nobody has touched yet starts blank: usual times, but no drivers and no kids on any run.
+// It's only saved once someone changes it. "Reset to usual week" fills it from the usual week.
+function blankDays(){
+  const d = {};
+  for(const day of DAYS){ d[day] = {}; for(const p of ["am","pm"]){
+    const t = template && template[day] && template[day][p] && template[day][p].runs[0];
+    d[day][p] = slot(run(t ? t.time : (p==="am" ? AM_DEFAULT : "6.00"), "", []));
+  } }
+  return d;
+}
+const getWeek = k => weeks[k] || {days:blankDays(), log:[]};
 const ready = () => mode==="live" && loaded.weeks && loaded.tpl;
 
 // Club rules: mornings are one car; a child alone on an evening run is collected by their own parents
@@ -335,7 +344,7 @@ function changeWeek(mutate, what){
 
 // ---------- Rendering ----------
 const kidChip = k => { const f=famOfKid(k); return `<span class="kid" style="background:${f?tint(f):'var(--line)'};color:${f?col(f):'var(--ink)'}">${esc(k)}</span>`; };
-const drvChip = d => { const f=famOfDriver(d); return `<span class="drv" style="background:${f?solid(f):'var(--muted)'}">${esc(d)}</span>`; };
+const drvChip = d => { if(!d) return `<span class="drv" style="background:var(--muted)">No driver</span>`; const f=famOfDriver(d); return `<span class="drv" style="background:${f?solid(f):'var(--muted)'}">${esc(d)}</span>`; };
 
 function runHtml(day,p,i,s,r){
   const solo = p==="pm" && r.kids.length===1;
@@ -352,9 +361,12 @@ function slotHtml(day,p,s){
   else if(s.own) body = `<div class="muted">🏠 Everyone takes their own</div>`;
   else {
     body = s.runs.map((r,i)=>r.kids.length?runHtml(day,p,i,s,r):"").join("");
-    if(!s.runs.some(r=>r.kids.length)) body += `<div class="muted">No kids on this run</div>`;
     const un = unassigned(s);
-    if(un.length) body += `<div class="warn">⚠ ${esc(kidList(un))} not on a run</div>`;
+    if(!s.runs.some(r=>r.kids.length) && un.length===KIDS.length) body += `<div class="muted">Unassigned</div>`;
+    else {
+      if(!s.runs.some(r=>r.kids.length)) body += `<div class="muted">No kids on this run</div>`;
+      if(un.length) body += `<div class="warn">⚠ ${esc(kidList(un))} not on a run</div>`;
+    }
     const outs = Object.entries(s.out);
     if(outs.length) body += `<div class="note">Not needed: ${outs.map(([k,why])=>esc(k)+(why?` (${esc(why)})`:"")).join(", ")}</div>`;
   }
@@ -533,7 +545,7 @@ function drawSlot(){
     <div class="car ${r.swap?'swap':''}">
       ${s.runs.length>1?`<div class="sec" style="margin-top:0">Car ${i+1}</div>`:""}
       <div class="row"><label for="t${i}">Time</label><input class="t" id="t${i}" type="text" inputmode="decimal" data-act="time" data-i="${i}" value="${esc(r.time)}">
-        <label for="d${i}">Driver</label><select id="d${i}" data-act="driver" data-i="${i}">${DRIVERS.map(d=>`<option ${d===r.driver?"selected":""}>${esc(d)}</option>`).join("")}</select></div>
+        <label for="d${i}">Driver</label><select id="d${i}" data-act="driver" data-i="${i}">${r.driver?"":`<option value="" selected>— choose —</option>`}${DRIVERS.map(d=>`<option ${d===r.driver?"selected":""}>${esc(d)}</option>`).join("")}</select></div>
       <div class="row"><label>Kids</label>${KIDS.filter(k=>!(k in s.out)).map(k=>{
         const on=r.kids.includes(k), f=famOfKid(k);
         return `<button class="tog ${on?'on':'off'}" style="color:${col(f)};background:${on?tint(f):'var(--card)'}" data-act="kid" data-i="${i}" data-k="${esc(k)}">${esc(k)}</button>`}).join("")}</div>
@@ -676,9 +688,9 @@ function shareText(){
       const r=runs[0], parts=[];
       if(p==="pm" || r.time!==AM_DEFAULT) parts.push(r.time);
       if(nn) parts.push(nn);
-      out.push(`${lab}${parts.length?` (${parts.join(", ")})`:""} - ${r.driver}${cover(r)}`);
+      out.push(`${lab}${parts.length?` (${parts.join(", ")})`:""} - ${r.driver||"driver needed"}${cover(r)}`);
     } else {
-      out.push(`${lab} ` + runs.map(r=>`(${r.time} ${kidList(r.kids)}) - ${r.driver}${cover(r)}`).join(" "));
+      out.push(`${lab} ` + runs.map(r=>`(${r.time} ${kidList(r.kids)}) - ${r.driver||"driver needed"}${cover(r)}`).join(" "));
     }
   }
   out.push("", `Board: ${location.origin}${location.pathname}`);
