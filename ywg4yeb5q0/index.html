@@ -61,7 +61,10 @@
   .weeknav{display:flex;align-items:center;justify-content:space-between;margin:6px auto 0;max-width:680px}
   .weeknav button{background:var(--veil);border:0;color:var(--on-accent);border-radius:8px;padding:4px 12px;font-size:18px;cursor:pointer}
   .weeknav button:disabled{opacity:.35;cursor:default}
-  .weeknav .wc{font-weight:600}
+  .weeknav .wc{font-weight:600;text-align:center}
+  .weeknav .term{font-size:12px;font-weight:600;opacity:.9;margin-top:1px}
+  .day.noschool{opacity:.6}
+  .dh em{font-style:normal;font-weight:600;font-size:12px;color:var(--muted);margin-left:8px}
   .wrap{max-width:680px;margin:auto;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
   .tools{display:flex;gap:6px;overflow-x:auto;padding-top:10px}
   .tools button{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:20px;padding:6px 12px;font-size:13px;cursor:pointer}
@@ -138,7 +141,7 @@
   </div>
   <div class="weeknav">
     <button id="prev" aria-label="Previous week">‹</button>
-    <div class="wc" id="wc"></div>
+    <div class="wc"><div id="wc"></div><div class="term" id="term"></div></div>
     <button id="next" aria-label="Next week">›</button>
   </div>
 </header>
@@ -295,6 +298,43 @@ const FIRST_WEEK = "2026-11-02";
 // On Sundays you're planning next week, so open on that
 let cur = (()=>{ const t=new Date(); if(t.getDay()===0) t.setDate(t.getDate()+1); const k=mondayOf(t); return k<FIRST_WEEK ? FIRST_WEEK : k; })();
 
+// ---------- School term dates (Bedales Senior) ----------
+// From bedales.org.uk/term-dates. Each term runs start..end (inclusive); breaks are days off inside it.
+// Weekdays outside every term are holidays, up to the end of the last term listed here; days after
+// that are unknown and shown without a label, so add each new term here when the school publishes it.
+const TERMS = [
+  {name:"Autumn term", start:"2026-09-06", end:"2026-12-11", breaks:[{name:"Half term", start:"2026-10-16", end:"2026-11-01"}]},
+];
+function schoolDay(k){
+  const last = TERMS.reduce((m,t)=>t.end>m?t.end:m, "");
+  for(const t of TERMS){
+    if(k<t.start || k>t.end) continue;
+    const b = (t.breaks||[]).find(b=>k>=b.start && k<=b.end);
+    if(b) return {type:"break", label:b.name};
+    return {type:"school", label: k===t.end ? `Last day of ${t.name.toLowerCase()}` : k===t.start ? `${t.name} starts` : ""};
+  }
+  if(!last || k>last) return {type:"unknown", label:""};
+  const first = TERMS.reduce((m,t)=>!m||t.start<m?t.start:m, "");
+  if(k<first) return {type:"unknown", label:""};
+  return {type:"holiday", label:"Holidays"};
+}
+function weekTerm(k){
+  const days = [0,1,2,3,4].map(i=>schoolDay(keyOf(addDays(k,i)))); // Mon–Fri
+  const types = new Set(days.map(d=>d.type));
+  if(types.size===1){
+    const t = [...types][0];
+    if(t==="school") return "🏫 School week";
+    if(t==="break") return `🌿 ${days[0].label}`;
+    if(t==="holiday") return "☀️ Holidays";
+    return "Term dates not added yet";
+  }
+  const sch = days.map((d,i)=>d.type==="school"?i:-1).filter(i=>i>=0);
+  if(!sch.length) return days.find(d=>d.type==="break") ? `🌿 ${days.find(d=>d.type==="break").label}` : "☀️ Holidays";
+  const dayName = i => `${DAYS[i].slice(0,3)} ${fmtShort(addDays(k,i))}`;
+  if(sch[0]>0 && days[sch[0]-1].type!=="unknown") return `🏫 School from ${dayName(sch[0])}`;
+  return `🏫 School until ${dayName(sch[sch.length-1])}`;
+}
+
 // ---------- Week helpers ----------
 function fresh(days){
   // clear one-off stuff (swap requests, "not needed") when reusing a week
@@ -417,6 +457,7 @@ function render(){
   const on = ready();
   document.getElementById("wc").textContent = `w/c ${fmtShort(parseKey(cur))} ${parseKey(cur).getFullYear()}`;
   document.getElementById("prev").disabled = cur<=FIRST_WEEK;
+  document.getElementById("term").textContent = weekTerm(cur);
   document.querySelectorAll(".w-only").forEach(b=>b.hidden=!on);
   document.getElementById("main").classList.toggle("editable", on);
   document.getElementById("tallyPanel").hidden = !on;
@@ -439,9 +480,12 @@ function render(){
   banner.innerHTML = stale ? `<div class="banner warn">Can't reach the board right now, so this may be out of date.</div>` : "";
 
   const w = getWeek(cur);
-  board.innerHTML = DAYS.map((day,i)=>
-    `<div class="day"><div class="dh">${day}<span>${fmtShort(addDays(cur,i))}</span></div>
-      ${slotHtml(day,"am",w.days[day].am)}${slotHtml(day,"pm",w.days[day].pm)}</div>`).join("");
+  board.innerHTML = DAYS.map((day,i)=>{
+    const sd = i<5 ? schoolDay(keyOf(addDays(cur,i))) : {type:"", label:""};
+    const off = sd.type==="break" || sd.type==="holiday";
+    const note = off ? "No school" : sd.label;
+    return `<div class="day${off?" noschool":""}"><div class="dh"><b>${day}${note?`<em>${esc(note)}</em>`:""}</b><span>${fmtShort(addDays(cur,i))}</span></div>
+      ${slotHtml(day,"am",w.days[day].am)}${slotHtml(day,"pm",w.days[day].pm)}</div>`; }).join("");
 
   const tw = countRuns(w.days);
   const all = {}; Object.keys(FAM).forEach(f=>all[f]=0);
