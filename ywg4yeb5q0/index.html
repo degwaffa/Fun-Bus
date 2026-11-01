@@ -110,8 +110,7 @@
   table.tally th{font-size:12px;font-weight:600;color:var(--muted);text-align:center;padding:2px 4px}
   table.tally td{text-align:center;padding:4px}
   table.tally td.nm{text-align:left;font-weight:600;white-space:nowrap}
-  table.tally td.bc{width:40%}
-  table.tally .b{display:block;height:10px;border-radius:5px;min-width:2px}
+  table.tally .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:baseline}
   .bar{display:flex;align-items:center;gap:8px;font-size:13px;font-variant-numeric:tabular-nums}
   .bar .nm{width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .bar .b{height:12px;border-radius:6px;min-width:2px}
@@ -452,10 +451,12 @@ function slotHtml(day,p,s){
   }
   return `<div class="slot" data-d="${day}" data-p="${p}" tabindex="0" role="button" aria-label="Edit ${day} ${p.toUpperCase()}"><div class="lab">${p.toUpperCase()}</div><div class="runs">${body}</div></div>`;
 }
-function countRuns(days, wk){
+// Runs driven per family, counting only days whose date passes `keep` (default: every day of the week)
+function countRuns(days, wk, keep=()=>true){
   const c = {}; Object.keys(FAM).forEach(f=>c[f]=0);
   for(const [i,day] of DAYS.entries()) for(const p of ["am","pm"]){
-    if(wk && noSchool(keyOf(addDays(wk,i)))) continue;
+    const dk = keyOf(addDays(wk,i));
+    if(!keep(dk) || noSchool(dk)) continue;
     const s = days[day][p]; if(s.off||s.own) continue;
     for(const r of s.runs){
       if(!r.kids.length) continue;
@@ -519,16 +520,19 @@ function render(){
       ${off ? `<div class="slot noruns"><div class="muted">No runs needed</div></div>`
             : slotHtml(day,"am",w.days[day].am)+slotHtml(day,"pm",w.days[day].pm)}</div>`; }).join("");
 
+  // Week / month / year buckets, for the week on screen (its Monday sets the month and year)
+  const ref = parseKey(cur), ym = cur.slice(0,7), yr = cur.slice(0,4);
   const tw = countRuns(w.days, cur);
-  const all = {}; Object.keys(FAM).forEach(f=>all[f]=0);
-  const keys = new Set([...Object.keys(weeks).filter(k=>k<=cur), cur]);
-  for(const k of keys){ const c=countRuns(getWeek(k).days, k); for(const f in c) all[f]+=c[f]; }
-  const max = Math.max(1,...Object.values(all));
+  const tm = {}, ty = {}; Object.keys(FAM).forEach(f=>{ tm[f]=0; ty[f]=0; });
+  for(const k of new Set([...Object.keys(weeks), cur])){
+    const days = getWeek(k).days;
+    const m = countRuns(days, k, dk=>dk.startsWith(ym)), y = countRuns(days, k, dk=>dk.startsWith(yr));
+    for(const f in m){ tm[f]+=m[f]; ty[f]+=y[f]; }
+  }
   document.getElementById("tally").innerHTML = `<h3>Runs driven per family</h3>
-    <table class="tally"><thead><tr><th></th><th>This week</th><th>Since ${fmtShort(parseKey(FIRST_WEEK))}</th><th></th></tr></thead><tbody>${
-    Object.keys(FAM).map(f=>`<tr><td class="nm">${esc(FAM[f].name)}</td><td>${tw[f]}</td><td>${all[f]}</td>
-      <td class="bc"><span class="b" style="width:${all[f]/max*100}%;background:${solid(f)}"></span></td></tr>`).join("")}</tbody></table>
-    <p class="hint">Counts runs with a driver and at least one child, up to the end of this week. School-free days and own pickups (one child on an evening run) aren't counted.</p>`;
+    <table class="tally"><thead><tr><th></th><th>This week</th><th>${LONGMONTHS[ref.getMonth()]}</th><th>${yr}</th></tr></thead><tbody>${
+    Object.keys(FAM).map(f=>`<tr><td class="nm"><span class="dot" style="background:${solid(f)}"></span>${esc(FAM[f].name)}</td><td>${tw[f]}</td><td>${tm[f]}</td><td>${ty[f]}</td></tr>`).join("")}</tbody></table>
+    <p class="hint">Counts every planned run with a driver and at least one child, by the date of the run. Month and year follow the week on screen. School-free days and own pickups (one child on an evening run) aren't counted.</p>`;
   document.getElementById("log").innerHTML = w.log.length
     ? w.log.slice(0,8).map(l=>`<li><b>${esc(l.who)}</b> ${esc(l.what)} · ${esc(l.at)}</li>`).join("")
     : `<li>No changes yet this week</li>`;
