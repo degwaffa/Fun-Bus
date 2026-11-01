@@ -303,7 +303,8 @@ let cur = (()=>{ const t=new Date(); if(t.getDay()===0) t.setDate(t.getDate()+1)
 // Weekdays outside every term are holidays, up to the end of the last term listed here; days after
 // that are unknown and shown without a label, so add each new term here when the school publishes it.
 const TERMS = [
-  {name:"Autumn term", start:"2026-09-06", end:"2026-12-11", breaks:[{name:"Half term", start:"2026-10-16", end:"2026-11-01"}]},
+  {name:"Autumn term", start:"2026-09-06", end:"2026-12-11", endNote:"term ends 13:00",
+   breaks:[{name:"Half term", start:"2026-10-16", end:"2026-11-01"}]},
 ];
 function schoolDay(k){
   const last = TERMS.reduce((m,t)=>t.end>m?t.end:m, "");
@@ -311,7 +312,7 @@ function schoolDay(k){
     if(k<t.start || k>t.end) continue;
     const b = (t.breaks||[]).find(b=>k>=b.start && k<=b.end);
     if(b) return {type:"break", label:b.name};
-    return {type:"school", label: k===t.end ? `Last day of ${t.name.toLowerCase()}` : k===t.start ? `${t.name} starts` : ""};
+    return {type:"school", label: k===t.end ? (t.endNote ? `Last day, ${t.endNote}` : `Last day of ${t.name.toLowerCase()}`) : k===t.start ? `${t.name} starts` : ""};
   }
   if(!last || k>last) return {type:"unknown", label:""};
   const first = TERMS.reduce((m,t)=>!m||t.start<m?t.start:m, "");
