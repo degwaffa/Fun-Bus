@@ -155,7 +155,6 @@
 <div class="wrap">
   <div class="tools">
     <button class="primary w-only" id="share">Share to WhatsApp</button>
-    <button id="copyLast" class="w-only">Copy last week</button>
     <button id="amTimesBtn" class="w-only">Morning times</button>
   </div>
   <main id="main"><div id="banner"></div><div id="board"></div></main>
@@ -770,11 +769,6 @@ document.getElementById("amTimesBtn").onclick = ()=>{
     ${PEOPLE.map((d,i)=>`<div class="row"><label for="amt${i}" style="width:90px;color:${col(famOfDriver(d))}">${esc(d)}</label>
       <input class="t" id="amt${i}" type="text" inputmode="decimal" data-who="${esc(d)}" placeholder="${AM_DEFAULT}" value="${esc(amTimes[d]?hhmm(amTimes[d],"am"):"")}"></div>`).join("")}
     <button class="btn go" data-act="saveAmTimes">Save</button></div>`);
-};
-document.getElementById("copyLast").onclick = ()=>{
-  const prev = weeks[mondayOf(addDays(cur,-7))];
-  if(!prev || cur<=FIRST_WEEK) return toast("There's no plan saved for last week to copy.");
-  askConfirm("Replace this week with a copy of last week?", "Copy last week", ()=>changeWeek(w=>{ w.days=fresh(prev.days); }, "copied last week"));
 };
 document.getElementById("leave").onclick = ()=>{
   askConfirm("Forget the club code on this phone? You'll need to enter it again to see the board.", "Forget the code", ()=>{

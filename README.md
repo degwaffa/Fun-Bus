@@ -6,7 +6,6 @@ A weekly lift-club planner for school runs, shared live between a few families.
 - Week board (Mon–Sat, AM/PM) starting w/c 2 Nov 2026; each new week starts blank
 - Tap a slot to edit: time, driver, which kids, second car, "not needed", "everyone takes their own", "no run"
 - "Ask for cover" → anyone can tap **I'll take it**
-- Copy last week
 - Morning times: each driver's usual departure time, used when they're picked for a morning run
 - Share to WhatsApp in the group's usual text format
 - Runs-per-family tally and a log of recent changes
