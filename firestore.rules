@@ -1,0 +1,40 @@
+rules_version = '2';
+// Fun Bus access rules. The club code is never stored: each club lives under the SHA-256
+// of its code, so only someone who knows the code can find or change its board.
+// Nothing here allows listing clubs, so the paths can't be discovered.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function clubExists(club) {
+      return exists(/databases/$(database)/documents/clubs/$(club)/meta/club);
+    }
+    function small() {
+      return request.resource.data.size() <= 4;
+    }
+
+    // Who's in the club. Created once at setup, then fixed (change it in the Firebase console).
+    match /clubs/{club}/meta/club {
+      allow get: if true;
+      allow create: if club.matches('^[0-9a-f]{64}$')
+        && request.resource.data.keys().hasOnly(['families', 'created'])
+        && request.resource.data.families is list
+        && request.resource.data.families.size() >= 1
+        && request.resource.data.families.size() <= 4;
+    }
+
+    // The usual week.
+    match /clubs/{club}/meta/template {
+      allow get: if clubExists(club);
+      allow create, update: if clubExists(club)
+        && request.resource.data.keys().hasOnly(['days']);
+    }
+
+    // One document per week, keyed by its Monday (YYYY-MM-DD).
+    match /clubs/{club}/weeks/{week} {
+      allow read: if clubExists(club);
+      allow create, update: if clubExists(club)
+        && week.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['days', 'log'])
+        && small();
+    }
+  }
+}

@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+<meta name="referrer" content="no-referrer">
+<title>Fun Bus</title>
+<meta name="description" content="Our lift club's school-run board.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Fun Bus 🚌">
+<meta property="og:description" content="This week's school runs: who's driving, when, and who needs cover.">
+<meta property="og:image" content="https://degwaffa.github.io/Fun-Bus/ywg4yeb5q0/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="theme-color" content="#7c3aed">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fun Bus">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  /* Layout: one narrow column of day cards under a sticky purple header, edits in a bottom sheet */
+  :root{
+    --bg:#f5f3ff; --card:#ffffff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb; --hover:#faf9ff;
+    --accent:#7c3aed; --on-accent:#ffffff; --veil:rgba(255,255,255,.2);
+    --red:#dc2626; --redbg:#fef2f2; --redline:#fecaca; --amber:#b45309; --amberbg:#fffbeb;
+    --ok:#22c55e; --wa:#1fa855; --scrim:rgba(17,12,40,.45); --shadow:rgba(30,20,60,.08);
+    --f0:#2563eb; --f0-bg:#dbeafe; --f0-strong:#2563eb;
+    --f1:#047857; --f1-bg:#d1fae5; --f1-strong:#059669;
+    --f2:#c2410c; --f2-bg:#ffedd5; --f2-strong:#c2410c;
+    --f3:#be185d; --f3-bg:#fce7f3; --f3-strong:#be185d;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+    --bg:#14121f; --card:#1e1b2d; --ink:#ece9f5; --muted:#a39db8; --line:#332e48; --hover:#262238;
+    --accent:#6d28d9; --red:#f87171; --redbg:#3a1c24; --redline:#7f1d1d; --amber:#fbbf24; --amberbg:#3a2e12;
+    --scrim:rgba(0,0,0,.6); --shadow:rgba(0,0,0,.4);
+    --f0:#93c5fd; --f0-bg:#1d2d4d; --f1:#6ee7b7; --f1-bg:#12392e; --f2:#fdba74; --f2-bg:#43260f; --f3:#f9a8d4; --f3-bg:#45172e;
+    color-scheme:dark }}
+  :root[data-theme="dark"]{
+    --bg:#14121f; --card:#1e1b2d; --ink:#ece9f5; --muted:#a39db8; --line:#332e48; --hover:#262238;
+    --accent:#6d28d9; --red:#f87171; --redbg:#3a1c24; --redline:#7f1d1d; --amber:#fbbf24; --amberbg:#3a2e12;
+    --scrim:rgba(0,0,0,.6); --shadow:rgba(0,0,0,.4);
+    --f0:#93c5fd; --f0-bg:#1d2d4d; --f1:#6ee7b7; --f1-bg:#12392e; --f2:#fdba74; --f2-bg:#43260f; --f3:#f9a8d4; --f3-bg:#45172e;
+    color-scheme:dark }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  html{padding-top:env(safe-area-inset-top,0px)}
+  body{margin:0;font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-text-size-adjust:100%}
+  body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--accent)}
+  header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--accent);color:var(--on-accent);padding:10px max(14px,env(safe-area-inset-right,0px)) 8px max(14px,env(safe-area-inset-left,0px));box-shadow:0 2px 8px var(--shadow)}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:8px;max-width:680px;margin:auto}
+  h1{font-size:19px;margin:0;display:flex;align-items:center;gap:8px}
+  .status{font-size:12px;font-weight:600;background:var(--veil);border-radius:20px;padding:2px 9px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  .status i{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+  .status.live i{background:var(--ok)}
+  .me select{border:0;border-radius:20px;padding:5px 10px;font-size:14px;background:var(--veil);color:var(--on-accent);max-width:40vw}
+  .me option{color:var(--ink);background:var(--card)}
+  .weeknav{display:flex;align-items:center;justify-content:space-between;margin:6px auto 0;max-width:680px}
+  .weeknav button{background:var(--veil);border:0;color:var(--on-accent);border-radius:8px;padding:4px 12px;font-size:18px;cursor:pointer}
+  .weeknav .wc{font-weight:600}
+  .wrap{max-width:680px;margin:auto;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
+  .tools{display:flex;gap:6px;overflow-x:auto;padding-top:10px}
+  .tools button{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:20px;padding:6px 12px;font-size:13px;cursor:pointer}
+  .tools button.primary{background:var(--wa);border-color:var(--wa);color:#fff;font-weight:600}
+  main{padding-top:10px}
+  .banner{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:14px}
+  .banner.warn{background:var(--amberbg);color:var(--amber);border-color:transparent}
+  .day{background:var(--card);border-radius:14px;margin-bottom:10px;box-shadow:0 1px 3px var(--shadow);overflow:hidden}
+  .dh{padding:8px 12px;font-weight:700;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
+  .dh span{font-weight:400;color:var(--muted);font-size:13px}
+  .slot{display:flex;gap:10px;padding:8px 12px;align-items:flex-start}
+  .editable .slot{cursor:pointer}
+  .slot+.slot{border-top:1px dashed var(--line)}
+  .editable .slot:hover{background:var(--hover)}
+  .lab{flex:none;width:30px;font-size:12px;font-weight:700;color:var(--muted);padding-top:4px}
+  .runs{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+  .run{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+  .run.swap{background:var(--redbg);border:1px solid var(--redline);border-radius:10px;padding:4px 6px}
+  .time{font-weight:700;min-width:38px;font-variant-numeric:tabular-nums}
+  .drv{color:#fff;border-radius:14px;padding:2px 10px;font-weight:600;font-size:14px}
+  .kid{border-radius:12px;padding:1px 8px;font-size:13px;font-weight:600}
+  .tag{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:10px;padding:0 6px}
+  .warn{font-size:13px;color:var(--amber);background:var(--amberbg);border-radius:8px;padding:2px 8px;align-self:flex-start}
+  .note{font-size:12px;color:var(--muted)}
+  .muted{color:var(--muted);font-size:14px;padding-top:2px}
+  .claim{border:0;background:var(--red);color:#fff;border-radius:14px;padding:3px 10px;font-size:13px;font-weight:600;cursor:pointer}
+  section.panel{margin-bottom:10px}
+  .box{background:var(--card);border-radius:14px;padding:10px 12px;box-shadow:0 1px 3px var(--shadow)}
+  .box h3{margin:0 0 6px;font-size:14px}
+  .bars{display:flex;flex-direction:column;gap:4px}
+  .bar{display:flex;align-items:center;gap:8px;font-size:13px;font-variant-numeric:tabular-nums}
+  .bar .nm{width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bar .b{height:12px;border-radius:6px;min-width:2px}
+  .log{font-size:13px;color:var(--muted);margin:0;padding-left:16px}
+  footer{padding-block:6px 30px;text-align:center}
+  .link{border:0;background:none;color:var(--muted);text-decoration:underline;font-size:13px;cursor:pointer;padding:6px}
+  .overlay{position:fixed;inset:0;background:var(--scrim);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+  .overlay.center{align-items:center;padding:16px}
+  .sheet{background:var(--card);color:var(--ink);width:100%;max-width:680px;max-height:90vh;overflow:auto;border-radius:18px 18px 0 0;padding:14px max(16px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+  .sheet h2{margin:0 0 10px;font-size:18px;display:flex;justify-content:space-between;gap:10px}
+  .sheet .x{border:0;background:none;font-size:22px;cursor:pointer;color:var(--ink)}
+  .car{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px}
+  .car.swap{border-color:var(--redline);background:var(--redbg)}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  .row label{font-size:13px;color:var(--muted);width:52px}
+  input[type=text],input[type=password],select{font-size:16px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+  input.t{width:70px}
+  input.wide{width:100%;padding:10px 12px}
+  .tog{border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:16px;padding:4px 12px;font-size:14px;cursor:pointer;font-weight:600}
+  .tog.on{border-color:currentColor}
+  .tog.off{opacity:.45}
+  .btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:7px 12px;font-size:14px;cursor:pointer;text-decoration:none}
+  .btn.red{color:var(--red)}
+  .btn.go{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:600;width:100%;padding:11px;font-size:16px;margin-top:6px}
+  .btn:disabled{opacity:.6;cursor:default}
+  .row .btn.go{width:auto;flex:1;margin:0}
+  .hint{font-size:12px;color:var(--muted);margin:4px 0 0}
+  .err{font-size:13px;color:var(--red);min-height:1.2em;margin:8px 0 0}
+  .sec{font-size:13px;font-weight:700;color:var(--muted);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.03em}
+  textarea{width:100%;height:280px;font:14px/1.4 ui-monospace,monospace;border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--card);color:var(--ink)}
+  textarea.short{height:140px}
+  .welcome{background:var(--card);color:var(--ink);border-radius:18px;padding:20px;margin:auto;width:100%;max-width:380px;text-align:center;max-height:90vh;overflow:auto}
+  .welcome form{display:flex;flex-direction:column;gap:8px;margin-top:12px;text-align:left}
+  .welcome .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--ink);color:var(--bg);border-radius:12px;padding:10px 14px;font-size:14px;max-width:calc(100% - 32px);box-shadow:0 4px 16px var(--shadow)}
+  button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible,textarea:focus-visible,.slot:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1>🚌 Fun Bus <span class="status" id="status"><i></i><span>Connecting…</span></span></h1>
+    <div class="me"><select id="meSel" aria-label="Who are you?" hidden></select></div>
+  </div>
+  <div class="weeknav">
+    <button id="prev" aria-label="Previous week">‹</button>
+    <div class="wc" id="wc"></div>
+    <button id="next" aria-label="Next week">›</button>
+  </div>
+</header>
+<div class="wrap">
+  <div class="tools">
+    <button class="primary w-only" id="share">Share to WhatsApp</button>
+    <button id="copyLast" class="w-only">Copy last week</button>
+    <button id="reset" class="w-only">Reset to usual week</button>
+    <button id="saveTpl" class="w-only">Save as usual week</button>
+  </div>
+  <main id="main"><div id="banner"></div><div id="board"></div></main>
+  <section class="panel" id="tallyPanel"><div class="box" id="tally"></div></section>
+  <section class="panel" id="logPanel"><div class="box"><h3>Recent changes</h3><ul class="log" id="log"></ul></div></section>
+  <footer><button class="link" id="leave" hidden>Use a different club code</button></footer>
+</div>
+<div id="overlay" class="overlay" hidden></div>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script>
+// No names or schedules live in this file: the families and the usual week are stored
+// in the club's database, which only opens with the club code.
+
+const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const AM_DEFAULT = "7.30";
+const SWATCH = ["f0","f1","f2","f3"];
+const clone = o => JSON.parse(JSON.stringify(o));
+const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+// ---------- Club (loaded from the database) ----------
+let FAM = {}, KIDS = [], PEOPLE = [], DRIVERS = [];
+function setClub(cfg){
+  FAM = {};
+  cfg.families.forEach((f,i)=>{ FAM["F"+i] = {name:f.name, parents:f.parents.slice(0,2), kids:f.kids.slice(), c:SWATCH[i]}; });
+  KIDS    = Object.values(FAM).flatMap(f=>f.kids);
+  PEOPLE  = Object.values(FAM).flatMap(f=>f.parents);
+  DRIVERS = Object.values(FAM).flatMap(f=>f.parents.length>1 ? [...f.parents, f.parents.join("/")] : f.parents);
+}
+const famOfDriver = d => Object.keys(FAM).find(k=>FAM[k].parents.includes(String(d).split("/")[0]));
+const famOfKid = k => Object.keys(FAM).find(f=>FAM[f].kids.includes(k));
+const byKid = (a,b)=>KIDS.indexOf(a)-KIDS.indexOf(b);
+const col   = f => `var(--${FAM[f].c})`;
+const tint  = f => `var(--${FAM[f].c}-bg)`;
+const solid = f => `var(--${FAM[f].c}-strong)`;
+
+const run  = (time, driver, kids=[...KIDS]) => ({time, driver, kids, swap:false});
+const slot = (...runs) => ({runs, out:{}, own:false, off:false});
+function basicTemplate(){
+  const t = {};
+  DAYS.forEach((d,i)=>{ t[d] = {am:slot(run(AM_DEFAULT, PEOPLE[i%PEOPLE.length])), pm:slot(run("6.00", PEOPLE[(i+1)%PEOPLE.length]))}; });
+  return t;
+}
+
+// ---------- Setup text validation ----------
+const str = (v, max=40) => typeof v==="string" && v.trim().length>0 && v.length<=max;
+function readSetup(text){
+  let o;
+  try{ o = JSON.parse(text); }catch{ throw new Error("The setup text isn't complete. Copy all of it, from the first { to the last }."); }
+  const fams = o && o.families;
+  if(!Array.isArray(fams) || fams.length<1 || fams.length>4) throw new Error("The setup needs between 1 and 4 families.");
+  const seen = new Set();
+  const families = fams.map(f=>{
+    if(!f || !str(f.name) || !Array.isArray(f.parents) || f.parents.length<1 || f.parents.length>2 || !f.parents.every(p=>str(p))
+       || !Array.isArray(f.kids) || f.kids.length<1 || f.kids.length>3 || !f.kids.every(k=>str(k)))
+      throw new Error("Each family needs a name, 1 or 2 parents and 1 to 3 children.");
+    for(const n of [...f.parents, ...f.kids]){ if(seen.has(n)) throw new Error(`"${n}" appears twice. Every name needs to be different.`); seen.add(n); }
+    return {name:f.name.trim(), parents:f.parents.map(p=>p.trim()), kids:f.kids.map(k=>k.trim())};
+  });
+  setClub({families});
+  let days = basicTemplate();
+  if(o.usualWeek){
+    try{
+      const u = o.usualWeek, out = {};
+      for(const d of DAYS){ out[d] = {}; for(const p of ["am","pm"]) out[d][p] = normSlot(u[d][p]); }
+      days = out;
+    }catch{ throw new Error("The usual week in the setup text doesn't look right."); }
+  }
+  return {families, days};
+}
+function normSlot(s){
+  const runs = s.runs.map(r=>{
+    if(!str(r.time,10) || !DRIVERS.includes(r.driver) || !Array.isArray(r.kids)) throw 0;
+    return {time:r.time, driver:r.driver, kids:r.kids.filter(k=>KIDS.includes(k)), swap:false};
+  });
+  if(!runs.length) throw 0;
+  return {runs, out:{}, own:!!s.own, off:!!s.off};
+}
+
+// ---------- Device-only conveniences ----------
+const local = {
+  get(k,d){ try{ const v=JSON.parse(localStorage.getItem(k)); return v??d }catch{ return d } },
+  set(k,v){ try{ v==null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)) }catch{} }
+};
+let me = local.get("fb_me", null);     // who's using this phone
+let club = local.get("fb_club", null); // hashed club code: opens the board without retyping
+
+// ---------- Database ----------
+const cfg = window.FUN_BUS_FIREBASE || {};
+const configured = !!(cfg.apiKey && cfg.projectId && window.firebase);
+let fs = null;
+if(configured){
+  firebase.initializeApp(cfg);
+  fs = firebase.firestore();
+  try{ fs.enablePersistence({synchronizeTabs:true}).catch(()=>{}); }catch{}
+}
+const P = {
+  club:  id => `clubs/${id}/meta/club`,
+  tpl:   id => `clubs/${id}/meta/template`,
+  weeks: id => `clubs/${id}/weeks`,
+};
+async function clubIdFor(code){
+  const norm = code.trim().toLowerCase().replace(/\s+/g," ");
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("fun-bus:"+norm));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+// ---------- State ----------
+let weeks = {};                 // monday key -> {days, log}
+let template = null;
+let mode = "loading";           // noconfig | code | loading | live
+let loaded = {weeks:false, tpl:false};
+let stale = false, pendingWrites = false;
+let unsubs = [];
+
+// ---------- Dates ----------
+const pad = n => String(n).padStart(2,"0");
+const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseKey = k => { const [y,m,d]=k.split("-").map(Number); return new Date(y,m-1,d); };
+const addDays = (k,n) => { const d=parseKey(k); d.setDate(d.getDate()+n); return d; };
+function mondayOf(d){ d=new Date(d); d.setHours(0,0,0,0); d.setDate(d.getDate()-((d.getDay()+6)%7)); return keyOf(d); }
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const LONGMONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const fmtShort = d => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+const fmtLong  = d => `${d.getDate()} ${LONGMONTHS[d.getMonth()]} ${d.getFullYear()}`;
+
+// On Sundays you're planning next week, so open on that
+let cur = (()=>{ const t=new Date(); if(t.getDay()===0) t.setDate(t.getDate()+1); return mondayOf(t); })();
+
+// ---------- Week helpers ----------
+function fresh(days){
+  // clear one-off stuff (swap requests, "not needed") when reusing a week
+  const d = clone(days);
+  for(const day of DAYS) for(const p of ["am","pm"]){
+    const s = d[day][p];
+    s.runs.forEach(r=>{ r.swap=false; r.kids=r.kids.filter(k=>KIDS.includes(k)); });
+    for(const k of Object.keys(s.out||{})) if(KIDS.includes(k) && !s.runs.some(r=>r.kids.includes(k))) s.runs[s.runs.length-1].kids.push(k);
+    s.out = {};
+    s.runs.forEach(r=>r.kids.sort(byKid));
+  }
+  return d;
+}
+// A week nobody has touched yet is shown from the usual week, and only saved once someone changes it
+const getWeek = k => weeks[k] || {days:fresh(template), log:[]};
+const ready = () => mode==="live" && loaded.weeks && loaded.tpl;
+
+// Club rules: mornings are one car; a child alone on an evening run is collected by their own parents
+function applyRules(p, s){
+  if(p==="am" && s.runs.length>1){
+    s.runs[0].kids = [...new Set(s.runs.flatMap(r=>r.kids))];
+    s.runs.length = 1;
+  }
+  if(p==="pm") for(const r of s.runs){
+    if(r.kids.length===1){
+      const f = famOfKid(r.kids[0]);
+      if(f && famOfDriver(r.driver)!==f) r.driver = FAM[f].parents.join("/");
+    }
+  }
+}
+const unassigned = s => KIDS.filter(k=>!(k in s.out) && !s.runs.some(r=>r.kids.includes(k)));
+const kidList = ks => ks.length<=1 ? ks.join("") : ks.slice(0,-1).join(", ")+" and "+ks[ks.length-1];
+const stamp = () => { const d=new Date(); return `${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()]} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const famLabel = f => FAM[f].name.replace(/s$/,"");
+
+// ---------- Saving ----------
+function writeFailed(e){
+  const c = e && e.code;
+  if(c==="permission-denied") toast("That change wasn't accepted. Try entering the club code again.");
+  else if(c==="resource-exhausted") toast("The board is over its free daily limit, so that change wasn't saved. Try again tomorrow.");
+  else toast("That change didn't save. Check your connection and try again.");
+}
+function saveWeek(k){ fs.doc(`${P.weeks(club)}/${k}`).set(clone(weeks[k])).catch(writeFailed); }
+function saveTemplate(){ fs.doc(P.tpl(club)).set({days:clone(template)}).catch(writeFailed); }
+function changeWeek(mutate, what){
+  const k = cur, w = clone(getWeek(k));
+  mutate(w);
+  w.log = [{who:me||"Someone", what, at:stamp()}, ...(w.log||[])].slice(0,30);
+  weeks[k] = w;
+  saveWeek(k); render();
+}
+
+// ---------- Rendering ----------
+const kidChip = k => { const f=famOfKid(k); return `<span class="kid" style="background:${f?tint(f):'var(--line)'};color:${f?col(f):'var(--ink)'}">${esc(k)}</span>`; };
+const drvChip = d => { const f=famOfDriver(d); return `<span class="drv" style="background:${f?solid(f):'var(--muted)'}">${esc(d)}</span>`; };
+
+function runHtml(day,p,i,s,r){
+  const solo = p==="pm" && r.kids.length===1;
+  return `<div class="run ${r.swap?'swap':''}">
+    <span class="time">${esc(r.time)}</span>${drvChip(r.driver)}
+    <span>${r.kids.map(kidChip).join(" ")}</span>
+    ${solo?'<span class="tag">own pickup</span>':''}
+    ${r.swap?`<span class="note">needs cover</span><button class="claim" data-claim="${day}|${p}|${i}">🙋 I'll take it</button>`:''}
+  </div>`;
+}
+function slotHtml(day,p,s){
+  let body;
+  if(s.off) body = `<div class="muted">— No run</div>`;
+  else if(s.own) body = `<div class="muted">🏠 Everyone takes their own</div>`;
+  else {
+    body = s.runs.map((r,i)=>r.kids.length?runHtml(day,p,i,s,r):"").join("");
+    if(!s.runs.some(r=>r.kids.length)) body += `<div class="muted">No kids on this run</div>`;
+    const un = unassigned(s);
+    if(un.length) body += `<div class="warn">⚠ ${esc(kidList(un))} not on a run</div>`;
+    const outs = Object.entries(s.out);
+    if(outs.length) body += `<div class="note">Not needed: ${outs.map(([k,why])=>esc(k)+(why?` (${esc(why)})`:"")).join(", ")}</div>`;
+  }
+  return `<div class="slot" data-d="${day}" data-p="${p}" tabindex="0" role="button" aria-label="Edit ${day} ${p.toUpperCase()}"><div class="lab">${p.toUpperCase()}</div><div class="runs">${body}</div></div>`;
+}
+function countRuns(days){
+  const c = {}; Object.keys(FAM).forEach(f=>c[f]=0);
+  for(const day of DAYS) for(const p of ["am","pm"]){
+    const s = days[day][p]; if(s.off||s.own) continue;
+    for(const r of s.runs){
+      if(!r.kids.length) continue;
+      if(p==="pm" && r.kids.length===1) continue; // own pickup — not a club run
+      const f = famOfDriver(r.driver); if(f) c[f]++;
+    }
+  }
+  return c;
+}
+function renderStatus(){
+  const el = document.getElementById("status");
+  let cls = "", txt = "Connecting…";
+  if(mode==="noconfig") txt = "Not set up";
+  else if(mode==="code") txt = "Locked";
+  else if(ready()){
+    if(!navigator.onLine) txt = pendingWrites ? "Offline · will sync" : "Offline";
+    else if(stale) txt = "Reconnecting…";
+    else if(pendingWrites) txt = "Saving…";
+    else { cls = "live"; txt = "Live"; }
+  }
+  el.className = "status "+cls;
+  el.querySelector("span").textContent = txt;
+}
+function render(){
+  renderStatus();
+  const on = ready();
+  document.getElementById("wc").textContent = `w/c ${fmtShort(parseKey(cur))}`;
+  document.querySelectorAll(".w-only").forEach(b=>b.hidden=!on);
+  document.getElementById("main").classList.toggle("editable", on);
+  document.getElementById("tallyPanel").hidden = !on;
+  document.getElementById("logPanel").hidden = !on;
+  document.getElementById("leave").hidden = !(mode==="live");
+  const sel = document.getElementById("meSel");
+  sel.hidden = !on;
+
+  const banner = document.getElementById("banner"), board = document.getElementById("board");
+  if(mode==="noconfig"){
+    banner.innerHTML = `<div class="banner warn">This board isn't connected to its database yet. Follow the setup steps in the README, then reload.</div>`;
+    board.innerHTML = ""; return;
+  }
+  if(mode==="code"){ banner.innerHTML = ""; board.innerHTML = `<div class="banner">Enter the club code to see the board.</div>`; return; }
+  if(!on){
+    banner.innerHTML = "";
+    board.innerHTML = `<div class="banner">${stale ? "Can't reach the board yet. Check your connection." : "Loading this week's plan…"}</div>`;
+    return;
+  }
+  banner.innerHTML = stale ? `<div class="banner warn">Can't reach the board right now, so this may be out of date.</div>` : "";
+
+  const w = getWeek(cur);
+  board.innerHTML = DAYS.map((day,i)=>
+    `<div class="day"><div class="dh">${day}<span>${fmtShort(addDays(cur,i))}</span></div>
+      ${slotHtml(day,"am",w.days[day].am)}${slotHtml(day,"pm",w.days[day].pm)}</div>`).join("");
+
+  const tw = countRuns(w.days);
+  const all = {}; Object.keys(FAM).forEach(f=>all[f]=0);
+  const keys = new Set([...Object.keys(weeks).filter(k=>k<=cur), cur]);
+  for(const k of keys){ const c=countRuns(getWeek(k).days); for(const f in c) all[f]+=c[f]; }
+  const max = Math.max(1,...Object.values(all));
+  document.getElementById("tally").innerHTML = `<h3>Runs per family <span class="note">(this week · all planned weeks)</span></h3><div class="bars">${
+    Object.keys(FAM).map(f=>`<div class="bar"><span class="nm">${esc(FAM[f].name)}</span>
+      <span class="b" style="width:${all[f]/max*55}%;background:${solid(f)}"></span>
+      <span>${tw[f]} · ${all[f]}</span></div>`).join("")}</div>
+      <p class="hint">Own pickups (one child on a late club run) aren't counted.</p>`;
+  document.getElementById("log").innerHTML = w.log.length
+    ? w.log.slice(0,8).map(l=>`<li><b>${esc(l.who)}</b> ${esc(l.what)} · ${esc(l.at)}</li>`).join("")
+    : `<li>No changes yet this week</li>`;
+  sel.innerHTML = `<option value="">Who are you?</option>` + PEOPLE.map(p=>`<option ${p===me?"selected":""}>${esc(p)}</option>`).join("");
+}
+
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.hidden=true, 5000);
+}
+
+// ---------- Sheets ----------
+const ov = document.getElementById("overlay");
+let ctx = null;        // slot being edited: {day, p, s (working copy), before}
+let pending = null;    // action waiting on an in-page confirm
+let locked = false;    // code sheet can't be dismissed
+const showSheet = (html, opts={}) => { ov.innerHTML = html; ov.hidden = false; ov.classList.toggle("center", !!opts.center); locked = !!opts.locked; };
+const hideSheet = () => { ov.hidden = true; ov.innerHTML = ""; ctx = null; pending = null; locked = false; };
+
+function askConfirm(question, okLabel, fn){
+  pending = fn;
+  showSheet(`<div class="sheet" role="dialog" aria-modal="true"><h2>${esc(question)}</h2>
+    <div class="row"><button class="btn" data-act="dismiss">Cancel</button><button class="btn go" data-act="confirm">${esc(okLabel)}</button></div></div>`);
+}
+function askWho(){
+  showSheet(`<div class="welcome" role="dialog" aria-modal="true"><h2>Welcome to the Fun Bus 🚌</h2><p class="note">Who's this? It's remembered on this phone and shown next to your changes.</p>
+    <div class="grid">${PEOPLE.map(p=>`<button class="tog" style="color:${col(famOfDriver(p))}" data-act="who" data-who="${esc(p)}">${esc(p)}</button>`).join("")}</div></div>`, {center:true});
+}
+function askCode(msg){
+  showSheet(`<div class="welcome" role="dialog" aria-modal="true" aria-labelledby="codeTitle">
+    <h2 id="codeTitle">Fun Bus 🚌</h2>
+    <p class="note">Enter the club code. Ask in the group chat if you don't have it. You only need to do this once on each phone.</p>
+    <form id="codeForm" autocomplete="off">
+      <input class="wide" id="codeIn" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Club code" aria-label="Club code">
+      <button class="btn go" type="submit" id="codeGo">Open the board</button>
+    </form>
+    <p class="err" id="codeErr">${esc(msg||"")}</p>
+    <button class="link" data-act="newclub">Setting up the club for the first time?</button>
+  </div>`, {center:true, locked:true});
+  setTimeout(()=>document.getElementById("codeIn")?.focus(), 50);
+}
+function askNewClub(){
+  showSheet(`<div class="welcome" role="dialog" aria-modal="true" aria-labelledby="newTitle">
+    <h2 id="newTitle">Set up the club</h2>
+    <p class="note">Only do this once, for the very first time. Everyone else just enters the code.</p>
+    <form id="newForm" autocomplete="off">
+      <label class="note" for="newCode">Choose a club code (at least 12 characters; three random words work well)</label>
+      <input class="wide" id="newCode" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="e.g. purple kettle march">
+      <label class="note" for="newSetup">Paste the setup text</label>
+      <textarea class="short" id="newSetup" spellcheck="false" placeholder='{"families":[ … ]}'></textarea>
+      <button class="btn go" type="submit" id="newGo">Create the club</button>
+    </form>
+    <p class="err" id="newErr"></p>
+    <button class="link" data-act="backtocode">I already have a code</button>
+  </div>`, {center:true, locked:true});
+}
+
+ov.addEventListener("submit", async e=>{
+  e.preventDefault();
+  if(e.target.id==="codeForm"){
+    const code = document.getElementById("codeIn").value, err = document.getElementById("codeErr"), go = document.getElementById("codeGo");
+    if(!code.trim()) { err.textContent = "Type the club code first."; return; }
+    go.disabled = true; err.textContent = "";
+    try{
+      const id = await clubIdFor(code);
+      const snap = await fs.doc(P.club(id)).get();
+      if(!snap.exists){ err.textContent = "No club uses that code. Check the spelling with the group."; go.disabled = false; return; }
+      club = id; local.set("fb_club", id); hideSheet(); openClub(snap.data());
+    }catch(x){ err.textContent = "Couldn't check the code. Check your connection and try again."; go.disabled = false; }
+  }
+  if(e.target.id==="newForm"){
+    const code = document.getElementById("newCode").value.trim(), err = document.getElementById("newErr"), go = document.getElementById("newGo");
+    err.textContent = "";
+    if(code.length<12){ err.textContent = "Make the code at least 12 characters. Three random words work well."; return; }
+    let setup;
+    try{ setup = readSetup(document.getElementById("newSetup").value); }catch(x){ err.textContent = x.message; return; }
+    go.disabled = true;
+    try{
+      const id = await clubIdFor(code);
+      const existing = await fs.doc(P.club(id)).get();
+      if(existing.exists){ err.textContent = "That code is already taken. Pick a different one."; go.disabled = false; return; }
+      await fs.doc(P.club(id)).set({families:setup.families, created:new Date().toISOString().slice(0,10)});
+      await fs.doc(P.tpl(id)).set({days:setup.days});
+      club = id; local.set("fb_club", id); hideSheet(); openClub({families:setup.families});
+      toast("Club created. Share the code with the other parents.");
+    }catch(x){
+      err.textContent = x && x.code==="permission-denied" ? "The database refused this setup. Check the access rules from the README are published." : "Couldn't create the club. Check your connection and try again.";
+      go.disabled = false;
+    }
+  }
+});
+
+function openSlot(day,p){
+  const s = clone(getWeek(cur).days[day][p]);
+  ctx = {day, p, s, before: JSON.stringify(s)};
+  drawSlot();
+}
+function drawSlot(){
+  const {day,p,s} = ctx;
+  applyRules(p,s);
+  const cars = s.runs.map((r,i)=>`
+    <div class="car ${r.swap?'swap':''}">
+      ${s.runs.length>1?`<div class="sec" style="margin-top:0">Car ${i+1}</div>`:""}
+      <div class="row"><label for="t${i}">Time</label><input class="t" id="t${i}" type="text" inputmode="decimal" data-act="time" data-i="${i}" value="${esc(r.time)}">
+        <label for="d${i}">Driver</label><select id="d${i}" data-act="driver" data-i="${i}">${DRIVERS.map(d=>`<option ${d===r.driver?"selected":""}>${esc(d)}</option>`).join("")}</select></div>
+      <div class="row"><label>Kids</label>${KIDS.filter(k=>!(k in s.out)).map(k=>{
+        const on=r.kids.includes(k), f=famOfKid(k);
+        return `<button class="tog ${on?'on':'off'}" style="color:${col(f)};background:${on?tint(f):'var(--card)'}" data-act="kid" data-i="${i}" data-k="${esc(k)}">${esc(k)}</button>`}).join("")}</div>
+      ${p==="pm"&&r.kids.length===1?`<p class="hint">🏠 ${esc(r.kids[0])} is on their own, so the ${esc(famLabel(famOfKid(r.kids[0])))} parents collect.</p>`:""}
+      <div class="row" style="margin:0">
+        <button class="btn ${r.swap?'':'red'}" data-act="swap" data-i="${i}">${r.swap?"✓ Cover found / cancel request":"🔁 Can't do it — ask for cover"}</button>
+        ${s.runs.length>1?`<button class="btn" data-act="delcar" data-i="${i}">Remove car</button>`:""}
+      </div>
+    </div>`).join("");
+  const un = unassigned(s);
+  showSheet(`<div class="sheet" role="dialog" aria-modal="true">
+    <h2>${day} ${p.toUpperCase()} <button class="x" data-act="close" aria-label="Close">×</button></h2>
+    <div class="row">
+      <button class="tog ${s.off?'on':''}" data-act="off">— No run</button>
+      <button class="tog ${s.own?'on':''}" data-act="own">🏠 Everyone takes their own</button>
+    </div>
+    ${s.off||s.own?"":`
+      ${cars}
+      ${un.length?`<div class="warn">⚠ ${esc(kidList(un))} not on a car yet — tap their name above</div>`:""}
+      ${p==="pm"&&s.runs.length<2?`<button class="btn" data-act="addcar">＋ Add a second car (clubs finish at different times)</button>`:""}
+      ${p==="am"?`<p class="hint">Mornings are always one car for everyone.</p>`:""}
+      <div class="sec">Not needed this ${p==="am"?"morning":"evening"}</div>
+      ${KIDS.map((k,j)=>{const out=k in s.out; return `<div class="row">
+        <button class="tog ${out?'on':''}" style="color:${col(famOfKid(k))}" data-act="out" data-k="${esc(k)}">${out?"✓ ":""}${esc(k)} not needed</button>
+        ${out?`<input type="text" id="why${j}" placeholder="why? (optional)" data-act="reason" data-k="${esc(k)}" value="${esc(s.out[k])}">`:""}</div>`}).join("")}
+    `}
+    <button class="btn go" data-act="close">Save</button>
+  </div>`);
+}
+function closeSlot(){
+  const {day,p,s,before} = ctx;
+  if(s.runs.length>1) s.runs = s.runs.filter(r=>r.kids.length);
+  if(!s.runs.length) s.runs=[run(p==="am"?AM_DEFAULT:"6.00", me||PEOPLE[0], [])];
+  applyRules(p,s);
+  hideSheet();
+  if(JSON.stringify(s)!==before) changeWeek(w=>{ w.days[day][p]=s; }, `updated ${day} ${p.toUpperCase()}`);
+}
+
+ov.addEventListener("click", async e=>{
+  if(e.target===ov){ if(locked) return; return ctx ? closeSlot() : hideSheet(); }
+  const b = e.target.closest("[data-act]"); if(!b) return;
+  const act = b.dataset.act;
+  if(act==="dismiss") return hideSheet();
+  if(act==="confirm"){ const fn=pending; hideSheet(); if(fn) fn(); return; }
+  if(act==="who"){ me=b.dataset.who; local.set("fb_me", me); hideSheet(); render(); return; }
+  if(act==="newclub") return askNewClub();
+  if(act==="backtocode") return askCode();
+  if(act==="copytext"){
+    try{ await navigator.clipboard.writeText(document.getElementById("shareTxt").value); b.textContent="✓ Copied"; }
+    catch{ document.getElementById("shareTxt").select(); }
+    return;
+  }
+  if(!ctx) return;
+  const s = ctx.s, i = +b.dataset.i, k = b.dataset.k;
+  switch(act){
+    case "close": return closeSlot();
+    case "off": s.off=!s.off; if(s.off) s.own=false; break;
+    case "own": s.own=!s.own; if(s.own) s.off=false; break;
+    case "kid":
+      if(s.runs[i].kids.includes(k)) s.runs[i].kids = s.runs[i].kids.filter(x=>x!==k);
+      else { s.runs.forEach(r=>r.kids=r.kids.filter(x=>x!==k)); s.runs[i].kids.push(k); }
+      s.runs[i].kids.sort(byKid);
+      break;
+    case "out":
+      if(k in s.out){ delete s.out[k]; const last=s.runs[s.runs.length-1]; last.kids.push(k); last.kids.sort(byKid); }
+      else { s.out[k]=""; s.runs.forEach(r=>r.kids=r.kids.filter(x=>x!==k)); }
+      break;
+    case "swap": s.runs[i].swap=!s.runs[i].swap; break;
+    case "addcar": s.runs.push(run("8.00", s.runs[0].driver, [])); break;
+    case "delcar": { const [gone]=s.runs.splice(i,1); s.runs[0].kids=[...new Set([...s.runs[0].kids,...gone.kids])].sort(byKid); break; }
+    default: return;
+  }
+  drawSlot();
+});
+ov.addEventListener("input", e=>{
+  const b=e.target; if(!ctx||!b.dataset.act) return;
+  if(b.dataset.act==="time") ctx.s.runs[+b.dataset.i].time=b.value.trim();
+  if(b.dataset.act==="reason") ctx.s.out[b.dataset.k]=b.value;
+});
+ov.addEventListener("change", e=>{
+  const b=e.target; if(!ctx||b.dataset.act!=="driver") return;
+  ctx.s.runs[+b.dataset.i].driver=b.value; drawSlot();
+});
+document.addEventListener("keydown", e=>{
+  if(e.key==="Escape" && !ov.hidden && !locked) return ctx ? closeSlot() : hideSheet();
+  if((e.key==="Enter"||e.key===" ") && e.target.classList?.contains("slot") && ready()){ e.preventDefault(); openSlot(e.target.dataset.d, e.target.dataset.p); }
+});
+
+// ---------- Board interactions ----------
+document.getElementById("board").addEventListener("click", e=>{
+  if(!ready()) return;
+  const c = e.target.closest("[data-claim]");
+  if(c){
+    if(!me) return askWho();
+    const [day,p,i] = c.dataset.claim.split("|");
+    changeWeek(w=>{ const r=w.days[day][p].runs[+i]; if(r){ r.driver=me; r.swap=false; } }, `took ${day} ${p.toUpperCase()} 🙌`);
+    return;
+  }
+  const s = e.target.closest(".slot");
+  if(s) openSlot(s.dataset.d, s.dataset.p);
+});
+document.getElementById("prev").onclick = ()=>{ cur=mondayOf(addDays(cur,-7)); render(); };
+document.getElementById("next").onclick = ()=>{ cur=mondayOf(addDays(cur,7)); render(); };
+document.getElementById("meSel").onchange = e=>{ me=e.target.value||null; local.set("fb_me", me); render(); };
+document.getElementById("copyLast").onclick = ()=>{
+  const prev = weeks[mondayOf(addDays(cur,-7))];
+  if(!prev) return toast("There's no plan saved for last week to copy.");
+  askConfirm("Replace this week with a copy of last week?", "Copy last week", ()=>changeWeek(w=>{ w.days=fresh(prev.days); }, "copied last week"));
+};
+document.getElementById("reset").onclick = ()=>{
+  askConfirm("Replace this week with the usual week?", "Reset this week", ()=>changeWeek(w=>{ w.days=fresh(template); }, "reset to the usual week"));
+};
+document.getElementById("saveTpl").onclick = ()=>{
+  askConfirm("Make this week the usual week that future weeks start from?", "Save as usual week", ()=>{
+    template = fresh(getWeek(cur).days); saveTemplate();
+    changeWeek(()=>{}, "saved this as the usual week");
+  });
+};
+document.getElementById("leave").onclick = ()=>{
+  askConfirm("Forget the club code on this phone? You'll need to enter it again to see the board.", "Forget the code", ()=>{
+    local.set("fb_club", null); location.reload();
+  });
+};
+window.addEventListener("online", render);
+window.addEventListener("offline", render);
+
+// ---------- WhatsApp text (in the group's usual format) ----------
+function shareText(){
+  const w = getWeek(cur), out = [`Week commencing ${fmtLong(parseKey(cur))}`];
+  for(const day of DAYS) for(const p of ["am","pm"]){
+    const s = w.days[day][p], lab = `${day} ${p.toUpperCase()}`;
+    if(s.off) continue;
+    if(s.own){ out.push(`${lab} - everyone takes their own`); continue; }
+    const runs = s.runs.filter(r=>r.kids.length);
+    const notNeeded = Object.keys(s.out);
+    const nn = notNeeded.length ? `no ${kidList(notNeeded)}` : "";
+    const cover = r => r.swap ? " ⚠️ needs cover" : "";
+    if(!runs.length) continue;
+    if(runs.length===1){
+      const r=runs[0], parts=[];
+      if(p==="pm" || r.time!==AM_DEFAULT) parts.push(r.time);
+      if(nn) parts.push(nn);
+      out.push(`${lab}${parts.length?` (${parts.join(", ")})`:""} - ${r.driver}${cover(r)}`);
+    } else {
+      out.push(`${lab} ` + runs.map(r=>`(${r.time} ${kidList(r.kids)}) - ${r.driver}${cover(r)}`).join(" "));
+    }
+  }
+  out.push("", `Board: ${location.origin}${location.pathname}`);
+  return out.join("\n");
+}
+document.getElementById("share").onclick = ()=>{
+  const t = shareText();
+  showSheet(`<div class="sheet" role="dialog" aria-modal="true"><h2>Share this week <button class="x" data-act="dismiss" aria-label="Close">×</button></h2>
+    <textarea id="shareTxt" aria-label="Message text">${esc(t)}</textarea>
+    <div class="row" style="margin-top:8px">
+      <button class="btn" data-act="copytext">📋 Copy</button>
+      <a class="btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(t)}">💬 Open WhatsApp</a>
+    </div></div>`);
+};
+
+// ---------- Start ----------
+function openClub(cfgData){
+  setClub(cfgData);
+  if(me && !PEOPLE.includes(me)){ me = null; local.set("fb_me", null); }
+  mode = "live"; loaded = {weeks:false, tpl:false}; stale = false;
+  unsubs.forEach(u=>u()); unsubs = [];
+  const firm = {weeks:false, tpl:false};
+  const timer = setTimeout(()=>{ if(!(firm.weeks&&firm.tpl)){ stale = true; render(); } }, 10000);
+  const settle = (which, meta)=>{
+    loaded[which] = true;
+    if(!meta.fromCache) firm[which] = true;
+    stale = !(firm.weeks && firm.tpl) && stale;
+    if(firm.weeks && firm.tpl) clearTimeout(timer);
+    render();
+  };
+  const onErr = e=>{
+    clearTimeout(timer);
+    if(e && e.code==="permission-denied"){ local.set("fb_club", null); club = null; mode = "code"; render(); askCode("That code no longer opens the board. Check it with the group."); return; }
+    stale = true; render();
+  };
+  unsubs.push(fs.collection(P.weeks(club)).onSnapshot({includeMetadataChanges:true}, snap=>{
+    const next = {};
+    snap.docs.forEach(doc=>{ const v=doc.data(); if(v && v.days) next[doc.id]=v; });
+    weeks = next;
+    pendingWrites = snap.metadata.hasPendingWrites;
+    settle("weeks", snap.metadata);
+  }, onErr));
+  unsubs.push(fs.doc(P.tpl(club)).onSnapshot({includeMetadataChanges:true}, snap=>{
+    const v = snap.exists ? snap.data() : null;
+    template = v && v.days ? v.days : basicTemplate();
+    settle("tpl", snap.metadata);
+  }, onErr));
+  render();
+  if(!me) askWho();
+}
+async function start(){
+  if(!configured){ mode = "noconfig"; render(); return; }
+  if(!club){ mode = "code"; render(); askCode(); return; }
+  mode = "loading"; render();
+  try{
+    const snap = await fs.doc(P.club(club)).get();
+    if(!snap.exists){ local.set("fb_club", null); club = null; mode = "code"; render(); askCode("That code no longer opens the board. Check it with the group."); return; }
+    openClub(snap.data());
+  }catch{
+    stale = true; render();
+    window.addEventListener("online", ()=>{ if(mode==="loading") start(); }, {once:true});
+  }
+}
+render();
+start();
+</script>
+</body>
+</html>
