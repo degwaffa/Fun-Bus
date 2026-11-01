@@ -296,8 +296,9 @@ const fmtLong  = d => `${d.getDate()} ${LONGMONTHS[d.getMonth()]} ${d.getFullYea
 
 // The club started on this week: nothing before it is shown or counted.
 const FIRST_WEEK = "2026-11-02";
-// The board always opens on the week we're in now (Sunday counts as the end of its week)
-const thisWeek = () => { const k = mondayOf(new Date()); return k<FIRST_WEEK ? FIRST_WEEK : k; };
+// The board opens on the week we're in now, except on Sundays (planning day, no runs),
+// when it opens on the coming week
+const thisWeek = () => { const t = new Date(); if(t.getDay()===0) t.setDate(t.getDate()+1); const k = mondayOf(t); return k<FIRST_WEEK ? FIRST_WEEK : k; };
 let cur = thisWeek();
 // If the page is left open (or brought back from the background) on a later day, jump back to this week
 let openedOn = keyOf(new Date());
