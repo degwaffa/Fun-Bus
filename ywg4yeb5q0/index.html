@@ -164,6 +164,8 @@
 
 const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const AM_DEFAULT = "7.30";
+// Morning departure time for each driver (set in config.js); anyone not listed leaves at AM_DEFAULT
+const amTimeFor = d => (window.FUN_BUS_AM_TIMES || {})[d] || AM_DEFAULT;
 const SWATCH = ["f0","f1","f2","f3"];
 const clone = o => JSON.parse(JSON.stringify(o));
 const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -625,7 +627,10 @@ ov.addEventListener("input", e=>{
 });
 ov.addEventListener("change", e=>{
   const b=e.target; if(!ctx||b.dataset.act!=="driver") return;
-  ctx.s.runs[+b.dataset.i].driver=b.value; drawSlot();
+  const r = ctx.s.runs[+b.dataset.i];
+  r.driver = b.value;
+  if(ctx.p==="am" && r.driver) r.time = amTimeFor(r.driver); // mornings: use the driver's usual departure time
+  drawSlot();
 });
 document.addEventListener("keydown", e=>{
   if(e.key==="Escape" && !ov.hidden && !locked) return ctx ? closeSlot() : hideSheet();
@@ -639,7 +644,7 @@ document.getElementById("board").addEventListener("click", e=>{
   if(c){
     if(!me) return askWho();
     const [day,p,i] = c.dataset.claim.split("|");
-    changeWeek(w=>{ const r=w.days[day][p].runs[+i]; if(r){ r.driver=me; r.swap=false; } }, `took ${day} ${p.toUpperCase()} 🙌`);
+    changeWeek(w=>{ const r=w.days[day][p].runs[+i]; if(r){ r.driver=me; r.swap=false; if(p==="am") r.time=amTimeFor(me); } }, `took ${day} ${p.toUpperCase()} 🙌`);
     return;
   }
   const s = e.target.closest(".slot");
