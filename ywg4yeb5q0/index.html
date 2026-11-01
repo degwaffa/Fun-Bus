@@ -60,6 +60,7 @@
   .me option{color:var(--ink);background:var(--card)}
   .weeknav{display:flex;align-items:center;justify-content:space-between;margin:6px auto 0;max-width:680px}
   .weeknav button{background:var(--veil);border:0;color:var(--on-accent);border-radius:8px;padding:4px 12px;font-size:18px;cursor:pointer}
+  .weeknav button:disabled{opacity:.35;cursor:default}
   .weeknav .wc{font-weight:600}
   .wrap{max-width:680px;margin:auto;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
   .tools{display:flex;gap:6px;overflow-x:auto;padding-top:10px}
@@ -275,8 +276,10 @@ const LONGMONTHS = ["January","February","March","April","May","June","July","Au
 const fmtShort = d => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
 const fmtLong  = d => `${d.getDate()} ${LONGMONTHS[d.getMonth()]} ${d.getFullYear()}`;
 
+// The club started on this week: nothing before it is shown or counted.
+const FIRST_WEEK = "2026-11-02";
 // On Sundays you're planning next week, so open on that
-let cur = (()=>{ const t=new Date(); if(t.getDay()===0) t.setDate(t.getDate()+1); return mondayOf(t); })();
+let cur = (()=>{ const t=new Date(); if(t.getDay()===0) t.setDate(t.getDate()+1); const k=mondayOf(t); return k<FIRST_WEEK ? FIRST_WEEK : k; })();
 
 // ---------- Week helpers ----------
 function fresh(days){
@@ -387,6 +390,7 @@ function render(){
   renderStatus();
   const on = ready();
   document.getElementById("wc").textContent = `w/c ${fmtShort(parseKey(cur))}`;
+  document.getElementById("prev").disabled = cur<=FIRST_WEEK;
   document.querySelectorAll(".w-only").forEach(b=>b.hidden=!on);
   document.getElementById("main").classList.toggle("editable", on);
   document.getElementById("tallyPanel").hidden = !on;
@@ -631,12 +635,12 @@ document.getElementById("board").addEventListener("click", e=>{
   const s = e.target.closest(".slot");
   if(s) openSlot(s.dataset.d, s.dataset.p);
 });
-document.getElementById("prev").onclick = ()=>{ cur=mondayOf(addDays(cur,-7)); render(); };
+document.getElementById("prev").onclick = ()=>{ if(cur<=FIRST_WEEK) return; cur=mondayOf(addDays(cur,-7)); render(); };
 document.getElementById("next").onclick = ()=>{ cur=mondayOf(addDays(cur,7)); render(); };
 document.getElementById("meSel").onchange = e=>{ me=e.target.value||null; local.set("fb_me", me); render(); };
 document.getElementById("copyLast").onclick = ()=>{
   const prev = weeks[mondayOf(addDays(cur,-7))];
-  if(!prev) return toast("There's no plan saved for last week to copy.");
+  if(!prev || cur<=FIRST_WEEK) return toast("There's no plan saved for last week to copy.");
   askConfirm("Replace this week with a copy of last week?", "Copy last week", ()=>changeWeek(w=>{ w.days=fresh(prev.days); }, "copied last week"));
 };
 document.getElementById("reset").onclick = ()=>{
@@ -712,7 +716,7 @@ function openClub(cfgData){
   };
   unsubs.push(fs.collection(P.weeks(club)).onSnapshot({includeMetadataChanges:true}, snap=>{
     const next = {};
-    snap.docs.forEach(doc=>{ const v=doc.data(); if(v && v.days) next[doc.id]=v; });
+    snap.docs.forEach(doc=>{ const v=doc.data(); if(v && v.days && doc.id>=FIRST_WEEK) next[doc.id]=v; });
     weeks = next;
     pendingWrites = snap.metadata.hasPendingWrites;
     settle("weeks", snap.metadata);
