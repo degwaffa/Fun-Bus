@@ -686,6 +686,18 @@ ov.addEventListener("click", async e=>{
   if(act==="saveNote") return setNote(document.getElementById("noteTxt").value);
   if(act==="clearNote") return setNote("");
   if(act==="backtocode") return askCode();
+  if(act==="shareimg" || act==="saveimg"){
+    const blob = await weekBlob(); if(!blob) return toast("Couldn't make the picture. Try the text version.");
+    const file = new File([blob], `fun-bus-${cur}.png`, {type:"image/png"});
+    if(act==="shareimg" && navigator.canShare && navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file], title:`Fun Bus w/c ${fmtShort(parseKey(cur))}`}); }
+      catch(x){ if(x && x.name!=="AbortError") saveWeekImage(blob); }
+    } else {
+      saveWeekImage(blob);
+      if(act==="shareimg") toast("Picture saved. Attach it in WhatsApp.");
+    }
+    return;
+  }
   if(act==="copytext"){
     try{ await navigator.clipboard.writeText(document.getElementById("shareTxt").value); b.textContent="✓ Copied"; }
     catch{ document.getElementById("shareTxt").select(); }
@@ -836,15 +848,134 @@ function shareText(){
   out.push("", `Board: ${location.origin}${location.pathname}`);
   return out.join("\n");
 }
+// ---------- Week as a picture (for WhatsApp) ----------
+// Drawn straight onto a canvas in light colours, so it looks the same on every phone.
+const IMG = {
+  bg:"#f5f3ff", card:"#ffffff", ink:"#1f2937", muted:"#6b7280", line:"#e5e7eb", accent:"#7c3aed",
+  amber:"#92400e", amberbg:"#fef3c7", red:"#dc2626", redbg:"#fef2f2", off:"#f3f4f6",
+  fam:{ f0:{s:"#2563eb",bg:"#dbeafe",ink:"#1d4ed8"}, f1:{s:"#059669",bg:"#d1fae5",ink:"#047857"},
+        f2:{s:"#c2410c",bg:"#ffedd5",ink:"#c2410c"}, f3:{s:"#be185d",bg:"#fce7f3",ink:"#be185d"} },
+  font:'-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif',
+};
+function weekCanvas(){
+  const W = 1080, PAD = 28, DAYW = 178, GAP = 14, CELLW = (W - PAD*2 - DAYW - GAP*2 - 28) / 2;
+  const w = getWeek(cur);
+  const c = document.createElement("canvas"), x = c.getContext("2d");
+  const font = (wt, px) => `${wt} ${px}px ${IMG.font}`;
+  const famC = f => f ? IMG.fam[FAM[f].c] : {s:IMG.muted, bg:IMG.off, ink:IMG.muted};
+  const rr = (x0,y0,w0,h0,r) => { x.beginPath(); x.moveTo(x0+r,y0); x.arcTo(x0+w0,y0,x0+w0,y0+h0,r); x.arcTo(x0+w0,y0+h0,x0,y0+h0,r); x.arcTo(x0,y0+h0,x0,y0,r); x.arcTo(x0,y0,x0+w0,y0,r); x.closePath(); };
+  // Word-wrap plain text to a width; returns lines
+  const wrap = (txt, maxW) => { const out=[]; let line=""; for(const word of String(txt).split(/\s+/)){ const t=line?line+" "+word:word; if(line && x.measureText(t).width>maxW){ out.push(line); line=word; } else line=t; } if(line) out.push(line); return out; };
+
+  // Lay out one AM/PM cell as a list of positioned items, then return its height
+  function cellItems(p, s){
+    const items = []; let lx = 0, ly = 0; const LH = 46;
+    const place = (wd, draw) => { if(lx>0 && lx+wd>CELLW){ lx = 0; ly += LH; } items.push({x:lx, y:ly, draw}); lx += wd + 7; };
+    if(s.off){ x.font=font(500,22); items.push({x:0,y:0,draw:(X,Y)=>{x.fillStyle=IMG.muted;x.font=font(500,22);x.fillText("No run",X,Y+29);}}); return {items,h:LH}; }
+    if(s.own){ x.font=font(500,22); items.push({x:0,y:0,draw:(X,Y)=>{x.fillStyle=IMG.muted;x.font=font(500,22);x.fillText("🏠 Everyone takes their own",X,Y+29);}}); return {items,h:LH}; }
+    const runs = s.runs.filter(r=>r.kids.length);
+    if(!runs.length){ items.push({x:0,y:0,draw:(X,Y)=>{x.fillStyle=IMG.muted;x.font=font(500,22);x.fillText("—",X,Y+29);}}); return {items,h:LH}; }
+    runs.forEach((r,ri)=>{
+      if(ri>0){ lx = 0; ly += LH; }
+      const t = hhmm(r.time,p); x.font = font(700,24); const tw = x.measureText(t).width;
+      place(tw, (X,Y)=>{ x.fillStyle=IMG.ink; x.font=font(700,24); x.fillText(t,X,Y+30); });
+      const dname = r.driver || "Driver needed", dc = r.driver ? famC(famOfDriver(r.driver)) : null;
+      x.font = font(700,22); const dw = x.measureText(dname).width + 22;
+      place(dw, (X,Y)=>{ rr(X,Y+4,dw,36,18); if(dc){ x.fillStyle=dc.s; x.fill(); x.fillStyle="#fff"; } else { x.fillStyle=IMG.redbg; x.fill(); x.strokeStyle=IMG.red; x.lineWidth=2; x.stroke(); x.fillStyle=IMG.red; } x.font=font(700,22); x.fillText(dname,X+11,Y+30); });
+      for(const k of r.kids){
+        const kc = famC(famOfKid(k)); x.font = font(600,20); const kw = x.measureText(k).width + 16;
+        place(kw, (X,Y)=>{ rr(X,Y+6,kw,32,16); x.fillStyle=kc.bg; x.fill(); x.fillStyle=kc.ink; x.font=font(600,20); x.fillText(k,X+8,Y+29); });
+      }
+      const tags = [];
+      if(p==="pm" && r.kids.length===1) tags.push(["own pickup", IMG.muted, IMG.off]);
+      if(r.swap) tags.push(["needs cover", IMG.red, IMG.redbg]);
+      for(const [tg,fg,bg] of tags){
+        x.font = font(600,18); const gw = x.measureText(tg).width + 18;
+        place(gw, (X,Y)=>{ rr(X,Y+9,gw,28,14); x.fillStyle=bg; x.fill(); x.fillStyle=fg; x.font=font(600,18); x.fillText(tg,X+9,Y+29); });
+      }
+    });
+    return {items, h: ly + LH};
+  }
+
+  function paint(dry){
+    let y = 0;
+    // Header
+    const HEAD = 150;
+    if(!dry){ x.fillStyle=IMG.bg; x.fillRect(0,0,c.width,c.height); x.fillStyle=IMG.accent; x.fillRect(0,0,W,HEAD);
+      x.fillStyle="#fff"; x.font=font(800,44); x.fillText("🚌 Fun Bus", PAD, 62);
+      x.font=font(600,30); x.fillText(`Week commencing ${fmtLong(parseKey(cur))}`, PAD, 106);
+      x.globalAlpha=.85; x.font=font(600,24); x.fillText(weekTerm(cur), PAD, 138); x.globalAlpha=1; }
+    y = HEAD + 22;
+    // Column headings
+    const AMX = PAD + 14 + DAYW + GAP, PMX = AMX + CELLW + GAP;
+    if(!dry){ x.fillStyle=IMG.muted; x.font=font(700,22); x.fillText("☀️ AM", AMX, y+22); x.fillText("🌙 PM", PMX, y+22); }
+    y += 40;
+    DAYS.forEach((day,i)=>{
+      const dk = keyOf(addDays(cur,i)), sd = schoolDay(dk), off = sd.type==="break" || sd.type==="holiday";
+      const label = off ? (sd.label && sd.label!=="Holidays" ? `No school · ${sd.label}` : "No school") : sd.label;
+      const msg = (w.days[day].note||"").trim();
+      // Left column: day, date, label
+      x.font = font(500,19); const labLines = label ? wrap(label, DAYW-6) : [];
+      const leftH = 34 + 28 + labLines.length*24;
+      let am = null, pm = null, cellsH = 0;
+      if(!off){ am = cellItems("am", w.days[day].am); pm = cellItems("pm", w.days[day].pm); cellsH = Math.max(am.h, pm.h); }
+      x.font = font(600,21); const noteLines = msg ? wrap("📝 " + msg, W - PAD*2 - 48) : [];
+      const bodyH = Math.max(leftH, off ? 0 : cellsH);
+      const rowH = 22 + bodyH + 18 + (noteLines.length ? noteLines.length*30 + 22 : 0);
+      if(!dry){
+        rr(PAD, y, W-PAD*2, rowH, 18); x.fillStyle = off ? IMG.off : IMG.card; x.fill();
+        x.strokeStyle = IMG.line; x.lineWidth = 2; x.stroke();
+        const top = y + 22, lx = PAD + 20;
+        x.fillStyle = off ? IMG.muted : IMG.ink; x.font=font(800,26); x.fillText(day, lx, top+26);
+        x.fillStyle = IMG.muted; x.font=font(500,21); x.fillText(fmtShort(parseKey(dk)), lx, top+56);
+        x.font=font(600,19); x.fillStyle = off ? IMG.muted : IMG.accent; labLines.forEach((l,j)=>x.fillText(l, lx, top+84+j*24));
+        if(off){ x.fillStyle=IMG.muted; x.font=font(600,24); x.fillText("No runs needed", AMX, top+30); }
+        else {
+          x.strokeStyle=IMG.line; x.lineWidth=2; x.beginPath(); x.moveTo(PMX-GAP/2, top-6); x.lineTo(PMX-GAP/2, top+bodyH+4); x.stroke();
+          for(const it of am.items) it.draw(AMX+it.x, top+it.y);
+          for(const it of pm.items) it.draw(PMX+it.x, top+it.y);
+        }
+        if(noteLines.length){
+          const ny = top + bodyH + 14; rr(PAD+14, ny, W-PAD*2-28, noteLines.length*30+14, 12); x.fillStyle=IMG.amberbg; x.fill();
+          x.fillStyle=IMG.amber; x.font=font(600,21); noteLines.forEach((l,j)=>x.fillText(l, PAD+28, ny+30+j*30));
+        }
+      }
+      y += rowH + 12;
+    });
+    // Footer
+    if(!dry){ x.fillStyle=IMG.muted; x.font=font(500,20); x.fillText(`Live board: ${location.host}${location.pathname}`, PAD, y+26); }
+    return y + 48;
+  }
+  c.width = W; c.height = 10; const H = paint(true);
+  c.width = W; c.height = Math.ceil(H); paint(false);
+  return c;
+}
+let shareBlob = null;
 document.getElementById("share").onclick = ()=>{
   const t = shareText();
+  const canvas = weekCanvas();
+  shareBlob = null; canvas.toBlob(b=>{ shareBlob = b; }, "image/png");
   showSheet(`<div class="sheet" role="dialog" aria-modal="true"><h2>Share this week <button class="x" data-act="dismiss" aria-label="Close">×</button></h2>
-    <textarea id="shareTxt" aria-label="Message text">${esc(t)}</textarea>
-    <div class="row" style="margin-top:8px">
-      <button class="btn" data-act="copytext">📋 Copy</button>
-      <a class="btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(t)}">💬 Open WhatsApp</a>
-    </div></div>`);
+    <img src="${canvas.toDataURL("image/png")}" alt="This week's runs as a picture" style="width:100%;border-radius:12px;border:1px solid var(--line);display:block">
+    <div class="row" style="margin-top:10px">
+      <button class="btn go" data-act="shareimg">📤 Share picture</button>
+      <button class="btn" data-act="saveimg">⬇️ Save</button>
+    </div>
+    <details style="margin-top:6px"><summary class="note" style="cursor:pointer">Send as text instead</summary>
+      <textarea id="shareTxt" aria-label="Message text" style="margin-top:8px">${esc(t)}</textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" data-act="copytext">📋 Copy</button>
+        <a class="btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(t)}">💬 Open WhatsApp</a>
+      </div></details></div>`);
 };
+async function weekBlob(){
+  if(shareBlob) return shareBlob;
+  return await new Promise(r=>weekCanvas().toBlob(r, "image/png"));
+}
+function saveWeekImage(blob){
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `fun-bus-${cur}.png`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+}
 
 // ---------- Start ----------
 function openClub(cfgData){
