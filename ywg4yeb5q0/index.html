@@ -136,6 +136,9 @@
   .welcome{background:var(--card);color:var(--ink);border-radius:18px;padding:20px;margin:auto;width:100%;max-width:380px;text-align:center;max-height:90vh;overflow:auto}
   .welcome form{display:flex;flex-direction:column;gap:8px;margin-top:12px;text-align:left}
   .welcome .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+  .heart{position:fixed;bottom:-40px;z-index:40;pointer-events:none;font-size:28px;animation:heartUp var(--dur,2.4s) ease-out forwards}
+  @keyframes heartUp{0%{transform:translate(0,0) scale(.6);opacity:0}10%{opacity:1}100%{transform:translate(var(--dx,0px),-110vh) scale(1.2) rotate(var(--rot,0deg));opacity:0}}
+  @media (prefers-reduced-motion: reduce){.heart{animation-duration:1.2s}}
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--ink);color:var(--bg);border-radius:12px;padding:10px 14px;font-size:14px;max-width:calc(100% - 32px);box-shadow:0 4px 16px var(--shadow)}
   button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible,textarea:focus-visible,.slot:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style>
@@ -724,7 +727,37 @@ ov.addEventListener("change", e=>{
   const r = ctx.s.runs[+b.dataset.i];
   r.driver = b.value;
   drawSlot();
+  heartsFor(r.driver);
 });
+
+// ---------- A little love ----------
+// One driver gets a stream of hearts whenever they're picked. They're recognised by a fingerprint of
+// their name, so no names live in this file.
+const HEART_FOR = "512b2a7a713d7fa96dda8c6347599b1f5601cc0a666589242994ffd9d9bdf996";
+async function heartsFor(driver){
+  if(!driver || !crypto.subtle) return;
+  for(const name of String(driver).split("/")){
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("fun-bus-hearts:"+name.trim().toLowerCase()));
+    const hex = [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+    if(hex===HEART_FOR){ heartStream(); return; }
+  }
+}
+function heartStream(){
+  const calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const n = calm ? 8 : 36, glyphs = ["❤️","💖","💕","💗","💘","💓"];
+  for(let i=0;i<n;i++) setTimeout(()=>{
+    const h = document.createElement("span");
+    h.className = "heart"; h.setAttribute("aria-hidden","true");
+    h.textContent = glyphs[Math.floor(Math.random()*glyphs.length)];
+    h.style.left = (5 + Math.random()*90) + "vw";
+    h.style.fontSize = (20 + Math.random()*22) + "px";
+    h.style.setProperty("--dx", (Math.random()*120-60) + "px");
+    h.style.setProperty("--rot", (Math.random()*60-30) + "deg");
+    h.style.setProperty("--dur", (calm ? 1.2 : 2 + Math.random()*1.6) + "s");
+    document.body.appendChild(h);
+    h.addEventListener("animationend", ()=>h.remove());
+  }, i*(calm ? 120 : 70));
+}
 document.addEventListener("keydown", e=>{
   if(e.key==="Escape" && !ov.hidden && !locked) return ctx ? closeSlot() : hideSheet();
   if((e.key==="Enter"||e.key===" ") && e.target.classList?.contains("slot") && ready()){ e.preventDefault(); openSlot(e.target.dataset.d, e.target.dataset.p); }
@@ -738,6 +771,7 @@ document.getElementById("board").addEventListener("click", e=>{
     if(!me) return askWho();
     const [day,p,i] = c.dataset.claim.split("|");
     changeWeek(w=>{ const r=w.days[day][p].runs[+i]; if(r){ r.driver=me; r.swap=false; } }, `took ${day} ${p.toUpperCase()} 🙌`);
+    heartsFor(me);
     return;
   }
   const s = e.target.closest(".slot[data-d]");
