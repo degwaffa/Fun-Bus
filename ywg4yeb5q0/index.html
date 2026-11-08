@@ -86,6 +86,36 @@
     .dmsg{white-space:normal}.dmsg .track{animation:none;display:block}.dmsg .track span{min-width:0;display:block;padding:6px 12px}.dmsg .track span+span{display:none}
   }
   .slot{display:flex;gap:10px;padding:8px 12px;align-items:flex-start}
+  /* Fit-the-week view: each day is one compact row (day and date on the left, AM and PM on a line each),
+     so a whole week fits on a phone screen */
+  .dh b .dshort{display:none}
+  .dh b span{font:inherit;color:inherit}
+  .compact .day{display:grid;grid-template-columns:52px minmax(0,1fr);margin-bottom:6px;border-radius:12px}
+  .compact .dh{grid-column:1;grid-row:1/span 2;flex-direction:column;justify-content:flex-start;gap:1px;padding:6px 2px 6px 8px;border-bottom:0;border-right:1px solid var(--line);font-size:14px;line-height:1.2}
+  .compact .dh b .dfull{display:none}
+  .compact .dh b .dshort{display:inline}
+  .compact .dh em{display:block;margin:2px 0 0;font-size:10px;line-height:1.2;font-weight:600}
+  .compact .dh>span{display:flex;flex-direction:column-reverse;align-items:flex-start;font-size:11px;white-space:nowrap}
+  .compact .dh .notebtn{padding:2px 0 0;margin:0;font-size:13px}
+  .compact .day>.slot{grid-column:2;padding:3px 8px;gap:6px;min-height:30px;align-items:center}
+  .compact .dmsg{grid-column:1/-1;grid-row:3;border-bottom:0;border-top:1px solid var(--line);font-size:12px}
+  .compact .dmsg .track span{padding:2px 3em 2px 10px}
+  /* In this view the miles box stays a slim strip and Share moves below the week */
+  .wrap{display:flex;flex-direction:column}
+  .wrap>*{order:2}
+  #milesPanel{order:0}.tools{order:1}
+  body.fit .tools{order:3;padding-top:0;margin-bottom:10px}
+  body.fit #milesPanel.slim{padding-block:4px 6px}
+  body.fit main{padding-top:2px}
+  .compact .lab{width:22px;font-size:11px;padding-top:0}
+  .compact .runs{gap:3px}
+  .compact .run{gap:4px}
+  .compact .time{font-size:14px;min-width:40px}
+  .compact .drv{font-size:13px;padding:1px 8px}
+  .compact .kid{font-size:12px;padding:0 6px}
+  .compact .tag{font-size:0;border:0;padding:0}
+  .compact .tag::before{content:"🏠";font-size:12px}
+  .compact .muted{font-size:13px;padding-top:0}
   .editable .slot{cursor:pointer}
   .editable .slot.noruns{cursor:default}
   .slot+.slot{border-top:1px dashed var(--line)}
@@ -223,6 +253,7 @@
   </div></section>
   <div class="tools">
     <button class="primary w-only" id="share">Share to WhatsApp</button>
+    <button class="w-only" id="viewBtn"></button>
   </div>
   <main id="main"><div id="banner"></div><div id="board"></div></main>
   <section class="panel" id="tallyPanel"><div class="box" id="tally"></div></section>
@@ -321,6 +352,8 @@ const local = {
 };
 let me = local.get("fb_me", null);     // who's using this phone
 let club = local.get("fb_club", null); // hashed club code: opens the board without retyping
+let slim = false;                       // miles box shrunk to a strip
+let compact = local.get("fb_compact", true); // fit-the-week view (on) or the bigger view, per phone
 
 // ---------- Database ----------
 const cfg = window.FUN_BUS_FIREBASE || {};
@@ -544,6 +577,12 @@ function render(){
   document.getElementById("term").textContent = weekTerm(cur);
   document.querySelectorAll(".w-only").forEach(b=>b.hidden=!on);
   document.getElementById("main").classList.toggle("editable", on);
+  document.getElementById("main").classList.toggle("compact", compact);
+  document.body.classList.toggle("fit", compact);
+  const mp = document.getElementById("milesPanel");
+  if(compact){ mp.classList.add("slim"); mp.style.marginBottom = ""; slim = true; }
+  else if(slim && scrollY<40){ mp.classList.remove("slim"); slim = false; }
+  document.getElementById("viewBtn").textContent = compact ? "🔍 Bigger view" : "📅 Fit the week";
   document.getElementById("tallyPanel").hidden = !on;
   document.getElementById("milesPanel").hidden = !on;
   document.getElementById("logPanel").hidden = !on;
@@ -573,7 +612,7 @@ function render(){
     const msg = (w.days[day].note||"").trim();
     const banner = msg ? `<div class="dmsg" data-note="${day}" role="button" tabindex="0" aria-label="Note for ${day}: ${esc(msg)}. Tap to change."
         style="--t:${Math.max(8, Math.round(msg.length*0.22))}s"><div class="track" aria-hidden="true"><span>📝 ${esc(msg)}</span><span>📝 ${esc(msg)}</span></div></div>` : "";
-    return `<div class="day${off?" noschool":""}"><div class="dh"><b>${day}${note?`<em>${esc(note)}</em>`:""}</b><span><button class="notebtn" data-note="${day}" aria-label="${msg?"Change":"Add a"} note for ${day}">📝</button>${fmtShort(addDays(cur,i))}</span></div>${banner}
+    return `<div class="day${off?" noschool":""}"><div class="dh"><b><span class="dfull">${day}</span><span class="dshort">${day.slice(0,3)}</span>${note?`<em>${esc(note)}</em>`:""}</b><span><button class="notebtn" data-note="${day}" aria-label="${msg?"Change":"Add a"} note for ${day}">📝</button>${fmtShort(addDays(cur,i))}</span></div>${banner}
       ${off ? `<div class="slot noruns"><div class="muted">No runs needed</div></div>`
             : slotHtml(day,"am",w.days[day].am)+slotHtml(day,"pm",w.days[day].pm)}</div>`; }).join("");
 
@@ -644,7 +683,6 @@ function renderMiles(){
 }
 // Scrolling down shrinks the box to a slim strip; back near the top it opens up again.
 // A bottom margin makes up the height it loses, so the board underneath doesn't jump.
-let slim = false;
 function setSlim(on){
   const el = document.getElementById("milesPanel");
   if(on===slim || el.hidden) return;
@@ -652,7 +690,7 @@ function setSlim(on){
   else { el.classList.remove("slim"); el.style.marginBottom = ""; }
   slim = on;
 }
-addEventListener("scroll", ()=>{ const y = scrollY; if(!slim && y>120) setSlim(true); else if(slim && y<40) setSlim(false); }, {passive:true});
+addEventListener("scroll", ()=>{ if(compact) return; const y = scrollY; if(!slim && y>120) setSlim(true); else if(slim && y<40) setSlim(false); }, {passive:true});
 // Runs tick over as their start times pass, so check every minute
 setInterval(()=>{ if(ready()) renderMiles(); }, 60000);
 
@@ -902,6 +940,7 @@ document.getElementById("board").addEventListener("click", e=>{
 });
 document.getElementById("prev").onclick = ()=>{ if(cur<=FIRST_WEEK) return; cur=mondayOf(addDays(cur,-7)); render(); };
 document.getElementById("next").onclick = ()=>{ cur=mondayOf(addDays(cur,7)); render(); };
+document.getElementById("viewBtn").onclick = ()=>{ compact = !compact; local.set("fb_compact", compact); render(); };
 document.getElementById("meSel").onchange = e=>{ me=e.target.value||null; local.set("fb_me", me); render(); };
 document.getElementById("leave").onclick = ()=>{
   askConfirm("Forget the club code on this phone? You'll need to enter it again to see the board.", "Forget the code", ()=>{
