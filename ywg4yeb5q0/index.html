@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>Fun Bus</title>
+<title>Bedales Fun Bus</title>
 <meta name="description" content="Our lift club's school-run board.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Fun Bus 🚌">
+<meta property="og:title" content="Bedales Fun Bus 🚌">
 <meta property="og:description" content="This week's school runs: who's driving, when, and who needs cover.">
 <meta property="og:image" content="https://degwaffa.github.io/Fun-Bus/ywg4yeb5q0/og.png">
 <meta property="og:image:width" content="1200">
@@ -58,6 +58,13 @@
   .status.live i{background:var(--ok)}
   .me select{border:0;border-radius:20px;padding:5px 10px;font-size:14px;background:var(--veil);color:var(--on-accent);max-width:40vw}
   .me option{color:var(--ink);background:var(--card)}
+  /* Keep "Bedales Fun Bus", the status and the name picker on one line on phones */
+  h1{white-space:nowrap;min-width:0}
+  @media (max-width:430px){
+    h1{font-size:17px;gap:6px}
+    .status{font-size:11px;padding:2px 7px}
+    .me select{max-width:30vw;padding:5px 8px}
+  }
   .weeknav{display:flex;align-items:center;justify-content:space-between;margin:6px auto 0;max-width:680px}
   .weeknav button{background:var(--veil);border:0;color:var(--on-accent);border-radius:8px;padding:4px 12px;font-size:18px;cursor:pointer}
   .weeknav button:disabled{opacity:.35;cursor:default}
@@ -229,7 +236,7 @@
 <body>
 <header>
   <div class="top">
-    <h1>🚌 Fun Bus <span class="status" id="status"><i></i><span>Connecting…</span></span></h1>
+    <h1>🚌 Bedales Fun Bus <span class="status" id="status"><i></i><span>Connecting…</span></span></h1>
     <div class="me"><select id="meSel" aria-label="Who are you?" hidden></select></div>
   </div>
   <div class="weeknav">
@@ -240,7 +247,7 @@
 </header>
 <div class="wrap">
   <section class="panel" id="milesPanel" hidden><div class="box" id="milesBox" role="button" tabindex="0" aria-label="Miles driven: tap to open or close">
-    <h3>🚗 Miles driven by the Fun Bus</h3>
+    <h3>🚗 Miles driven by the Bedales Fun Bus</h3>
     <div class="miles">
       <div class="globe" aria-hidden="true"><div class="gscale">
         <div class="ring"></div>
@@ -742,12 +749,12 @@ function askConfirm(question, okLabel, fn){
     <div class="row"><button class="btn" data-act="dismiss">Cancel</button><button class="btn go" data-act="confirm">${esc(okLabel)}</button></div></div>`);
 }
 function askWho(){
-  showSheet(`<div class="welcome" role="dialog" aria-modal="true"><h2>Welcome to the Fun Bus 🚌</h2><p class="note">Who's this? It's remembered on this phone and shown next to your changes.</p>
+  showSheet(`<div class="welcome" role="dialog" aria-modal="true"><h2>Welcome to the Bedales Fun Bus 🚌</h2><p class="note">Who's this? It's remembered on this phone and shown next to your changes.</p>
     <div class="grid">${PEOPLE.map(p=>`<button class="tog" style="color:${col(famOfDriver(p))}" data-act="who" data-who="${esc(p)}">${esc(p)}</button>`).join("")}</div></div>`, {center:true});
 }
 function askCode(msg){
   showSheet(`<div class="welcome" role="dialog" aria-modal="true" aria-labelledby="codeTitle">
-    <h2 id="codeTitle">Fun Bus 🚌</h2>
+    <h2 id="codeTitle">Bedales Fun Bus 🚌</h2>
     <p class="note">Enter the club code. Ask in the group chat if you don't have it. You only need to do this once on each phone.</p>
     <form id="codeForm" autocomplete="off">
       <input class="wide" id="codeIn" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Club code" aria-label="Club code">
@@ -872,7 +879,7 @@ ov.addEventListener("click", async e=>{
     const blob = await weekBlob(); if(!blob) return toast("Couldn't make the picture. Try the text version.");
     const file = new File([blob], `fun-bus-${cur}.png`, {type:"image/png"});
     if(act==="shareimg" && navigator.canShare && navigator.canShare({files:[file]})){
-      try{ await navigator.share({files:[file], title:`Fun Bus w/c ${fmtShort(parseKey(cur))}`}); }
+      try{ await navigator.share({files:[file], title:`Bedales Fun Bus w/c ${fmtShort(parseKey(cur))}`}); }
       catch(x){ if(x && x.name!=="AbortError") saveWeekImage(blob); }
     } else {
       saveWeekImage(blob);
@@ -1085,7 +1092,7 @@ function weekCanvas(){
     // Header
     const HEAD = 150;
     if(!dry){ x.fillStyle=IMG.bg; x.fillRect(0,0,c.width,c.height); x.fillStyle=IMG.accent; x.fillRect(0,0,W,HEAD);
-      x.fillStyle="#fff"; x.font=font(800,44); x.fillText("🚌 Fun Bus", PAD, 62);
+      x.fillStyle="#fff"; x.font=font(800,44); x.fillText("🚌 Bedales Fun Bus", PAD, 62);
       x.font=font(600,30); x.fillText(`Week commencing ${fmtLong(parseKey(cur))}`, PAD, 106);
       x.globalAlpha=.85; x.font=font(600,24); x.fillText(weekTerm(cur), PAD, 138); x.globalAlpha=1; }
     y = HEAD + 22;
