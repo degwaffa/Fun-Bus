@@ -115,6 +115,18 @@
   .bar .nm{width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .bar .b{height:12px;border-radius:6px;min-width:2px}
   .log{font-size:13px;color:var(--muted);margin:0;padding-left:16px}
+  /* Miles driven: a car drives round a little Earth as the club's miles add up */
+  .miles{display:flex;align-items:center;gap:14px}
+  .globe{position:relative;flex:none;width:136px;height:136px}
+  .globe .ring{position:absolute;inset:11px;border:2px dashed var(--line);border-radius:50%}
+  .globe svg{position:absolute;inset:24px;width:88px;height:88px}
+  .orbit{position:absolute;inset:0;transition:transform 2.8s cubic-bezier(.3,.7,.25,1)}
+  .orbit span{position:absolute;left:50%;top:0;transform:translateX(-50%);font-size:24px;line-height:1}
+  @media (prefers-reduced-motion: reduce){ .orbit{transition:none} }
+  .mtxt{min-width:0}
+  .mnum{font-size:30px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+  .mnum small{font-size:16px;font-weight:600;color:var(--muted)}
+  .mlap{font-size:14px;font-weight:600;margin-top:4px}
   footer{padding-block:6px 30px;text-align:center}
   .link{border:0;background:none;color:var(--muted);text-decoration:underline;font-size:13px;cursor:pointer;padding:6px}
   .overlay{position:fixed;inset:0;background:var(--scrim);z-index:20;display:flex;align-items:flex-end;justify-content:center}
@@ -169,6 +181,36 @@
     <button class="primary w-only" id="share">Share to WhatsApp</button>
   </div>
   <main id="main"><div id="banner"></div><div id="board"></div></main>
+  <section class="panel" id="milesPanel" hidden><div class="box">
+    <h3>🚗 Miles driven by the Fun Bus</h3>
+    <div class="miles">
+      <div class="globe" aria-hidden="true">
+        <div class="ring"></div>
+        <svg viewBox="0 0 100 100">
+          <defs>
+            <radialGradient id="sea" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#1d4ed8"/></radialGradient>
+            <clipPath id="ball"><circle cx="50" cy="50" r="49"/></clipPath>
+          </defs>
+          <circle cx="50" cy="50" r="49" fill="url(#sea)"/>
+          <g clip-path="url(#ball)" fill="#22c55e">
+            <path d="M18 22c8-6 20-7 26-2 5 4 1 10-5 12-5 2-4 8-9 11-6 4-12-1-14-7-2-5-4-10 2-14z"/>
+            <path d="M33 50c5-2 11 1 12 7 1 7-3 12-4 19-1 6-6 9-9 4-3-6-1-12-4-18-2-6 0-10 5-12z"/>
+            <path d="M55 16c7-4 18-3 26 3 6 5 9 12 4 16-5 3-11 0-16 3-5 3-3 9-9 10-6 1-8-5-7-11 1-5-4-8-3-13 0-4 2-6 5-8z"/>
+            <path d="M60 50c6-2 12 2 13 8 1 7-4 13-10 15-5 2-9-3-8-9 0-5-1-12 5-14z"/>
+            <path d="M74 72c5-1 9 2 8 6-1 4-6 6-10 4-3-2-2-9 2-10z"/>
+          </g>
+          <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/>
+        </svg>
+        <div class="orbit" id="orbit"><span>🚗</span></div>
+      </div>
+      <div class="mtxt">
+        <div class="mnum" id="milesNum">0 <small>miles</small></div>
+        <div class="note" id="milesRuns"></div>
+        <div class="mlap" id="milesLap"></div>
+      </div>
+    </div>
+    <p class="hint">Each run is a 50-mile round trip (25 miles each way), counted once it's started. Everyone, since the club began. Once round the Earth is 24,901 miles.</p>
+  </div></section>
   <section class="panel" id="tallyPanel"><div class="box" id="tally"></div></section>
   <section class="panel" id="logPanel"><div class="box"><h3>Recent changes</h3><ul class="log" id="log"></ul></div></section>
   <footer><button class="link" id="leave" hidden>Use a different club code</button></footer>
@@ -489,6 +531,7 @@ function render(){
   document.querySelectorAll(".w-only").forEach(b=>b.hidden=!on);
   document.getElementById("main").classList.toggle("editable", on);
   document.getElementById("tallyPanel").hidden = !on;
+  document.getElementById("milesPanel").hidden = !on;
   document.getElementById("logPanel").hidden = !on;
   document.getElementById("leave").hidden = !(mode==="live");
   const sel = document.getElementById("meSel");
@@ -533,11 +576,57 @@ function render(){
     <table class="tally"><thead><tr><th></th><th>This week</th><th>${LONGMONTHS[ref.getMonth()]}</th><th>${yr}</th></tr></thead><tbody>${
     Object.keys(FAM).map(f=>`<tr><td class="nm"><span class="dot" style="background:${solid(f)}"></span>${esc(FAM[f].name)}</td><td>${tw[f]}</td><td>${tm[f]}</td><td>${ty[f]}</td></tr>`).join("")}</tbody></table>
     <p class="hint">Counts every planned run with a driver and at least one child, by the date of the run. Month and year follow the week on screen. School-free days and own pickups (one child on an evening run) aren't counted.</p>`;
+  renderMiles();
   document.getElementById("log").innerHTML = w.log.length
     ? w.log.slice(0,8).map(l=>`<li><b>${esc(l.who)}</b> ${esc(l.what)} · ${esc(l.at)}</li>`).join("")
     : `<li>No changes yet this week</li>`;
   sel.innerHTML = `<option value="">Who are you?</option>` + PEOPLE.map(p=>`<option ${p===me?"selected":""}>${esc(p)}</option>`).join("");
 }
+
+// ---------- Miles driven (everyone, all time) ----------
+const MILES_ONE_WAY = 25, RUN_MILES = MILES_ONE_WAY*2, EARTH_MILES = 24901;
+// Runs that have actually happened: a driver, at least one child, a school day, and a start time
+// that has passed. Every car counts, own pickups included: those miles were still driven.
+function runsDriven(now = new Date()){
+  let n = 0;
+  for(const [k,wk] of Object.entries(weeks)){
+    if(!wk || !wk.days) continue;
+    for(const [i,day] of DAYS.entries()){
+      const date = addDays(k,i);
+      if(date > now || noSchool(keyOf(date))) continue;
+      for(const p of ["am","pm"]){
+        const s = wk.days[day] && wk.days[day][p];
+        if(!s || s.off || s.own || !Array.isArray(s.runs)) continue;
+        for(const r of s.runs){
+          if(!r || !r.driver || !r.kids || !r.kids.length) continue;
+          const when = new Date(date), t = hhmm(r.time,p).match(/^(\d\d):(\d\d)$/);
+          if(t) when.setHours(+t[1], +t[2]); else when.setHours(p==="am" ? 7 : 18, 30);
+          if(when <= now) n++;
+        }
+      }
+    }
+  }
+  return n;
+}
+let shownMiles = null;
+function renderMiles(){
+  const runs = runsDriven(), miles = runs*RUN_MILES;
+  if(miles===shownMiles) return;
+  const first = shownMiles===null; shownMiles = miles;
+  const laps = Math.floor(miles/EARTH_MILES), pct = (miles%EARTH_MILES)/EARTH_MILES*100;
+  const pctTxt = pct<10 && pct>0 ? pct.toFixed(1) : Math.floor(pct);
+  document.getElementById("milesNum").innerHTML = `${miles.toLocaleString("en-GB")} <small>miles</small>`;
+  document.getElementById("milesRuns").textContent = `${runs.toLocaleString("en-GB")} run${runs===1?"":"s"} × ${RUN_MILES} miles`;
+  document.getElementById("milesLap").textContent = laps
+    ? `🌍 ${laps} lap${laps===1?"":"s"} of the Earth + ${pctTxt}% of the next`
+    : `🌍 ${pctTxt}% of the way round the Earth`;
+  // The car drives anticlockwise from the top. The angle keeps growing past 360° so it never drives backwards.
+  const orbit = document.getElementById("orbit"), deg = -(miles/EARTH_MILES)*360;
+  if(first) requestAnimationFrame(()=>requestAnimationFrame(()=>{ orbit.style.transform = `rotate(${deg}deg)`; }));
+  else orbit.style.transform = `rotate(${deg}deg)`;
+}
+// Runs tick over as their start times pass, so check every minute
+setInterval(()=>{ if(ready()) renderMiles(); }, 60000);
 
 let toastTimer;
 function toast(msg){
