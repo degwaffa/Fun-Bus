@@ -125,6 +125,19 @@
   @media (prefers-reduced-motion: reduce){ .orbit{transition:none} }
   /* Stays in view under the header while the board scrolls */
   #milesPanel{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--hh,96px));z-index:4;background:var(--bg);padding-block:10px;margin-bottom:0}
+  /* Scrolled down: shrinks to a slim strip (small globe, number and laps on one line) */
+  .gscale{position:absolute;left:0;top:0;width:136px;height:136px;transform-origin:0 0}
+  #milesPanel.slim{padding-block:6px}
+  #milesPanel.slim .box{padding:6px 12px}
+  #milesPanel.slim h3,#milesPanel.slim #milesRuns{display:none}
+  #milesPanel.slim .miles{gap:10px}
+  #milesPanel.slim .globe{width:52px;height:52px}
+  #milesPanel.slim .gscale{transform:scale(.3824)}
+  #milesPanel.slim .orbit span{font-size:40px;top:-10px}
+  #milesPanel.slim .mtxt{display:flex;align-items:baseline;flex-wrap:wrap;column-gap:10px}
+  #milesPanel.slim .mnum{font-size:22px}
+  #milesPanel.slim .mnum small{font-size:14px}
+  #milesPanel.slim .mlap{margin-top:0;font-size:13px}
   .mtxt{min-width:0}
   .mnum{font-size:30px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
   .mnum small{font-size:16px;font-weight:600;color:var(--muted)}
@@ -182,7 +195,7 @@
   <section class="panel" id="milesPanel" hidden><div class="box">
     <h3>🚗 Miles driven by the Fun Bus</h3>
     <div class="miles">
-      <div class="globe" aria-hidden="true">
+      <div class="globe" aria-hidden="true"><div class="gscale">
         <div class="ring"></div>
         <svg viewBox="0 0 100 100">
           <defs>
@@ -200,7 +213,7 @@
           <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/>
         </svg>
         <div class="orbit" id="orbit"><span>🚗</span></div>
-      </div>
+      </div></div>
       <div class="mtxt">
         <div class="mnum" id="milesNum">0 <small>miles</small></div>
         <div class="note" id="milesRuns"></div>
@@ -629,6 +642,17 @@ function renderMiles(){
   if(first) requestAnimationFrame(()=>requestAnimationFrame(()=>{ orbit.style.transform = `rotate(${deg}deg)`; }));
   else orbit.style.transform = `rotate(${deg}deg)`;
 }
+// Scrolling down shrinks the box to a slim strip; back near the top it opens up again.
+// A bottom margin makes up the height it loses, so the board underneath doesn't jump.
+let slim = false;
+function setSlim(on){
+  const el = document.getElementById("milesPanel");
+  if(on===slim || el.hidden) return;
+  if(on){ const h = el.offsetHeight; el.classList.add("slim"); el.style.marginBottom = (h - el.offsetHeight) + "px"; }
+  else { el.classList.remove("slim"); el.style.marginBottom = ""; }
+  slim = on;
+}
+addEventListener("scroll", ()=>{ const y = scrollY; if(!slim && y>120) setSlim(true); else if(slim && y<40) setSlim(false); }, {passive:true});
 // Runs tick over as their start times pass, so check every minute
 setInterval(()=>{ if(ready()) renderMiles(); }, 60000);
 
