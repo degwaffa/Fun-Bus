@@ -107,6 +107,12 @@
   body.fit .wrap>.tools{order:3;padding-top:0;margin-bottom:10px}
   body.fit #milesPanel.slim{padding-block:4px 6px}
   body.fit main{padding-top:2px}
+  /* ...and the days stretch to fill the screen, so there's no empty space at the bottom */
+  body.fit .wrap{min-height:calc(100vh - var(--hh,96px) - env(safe-area-inset-top,0px));min-height:calc(100dvh - var(--hh,96px) - env(safe-area-inset-top,0px))}
+  body.fit main{flex:1 0 auto;display:flex;flex-direction:column}
+  body.fit #board{flex:1 0 auto;display:flex;flex-direction:column}
+  body.fit .compact .day{flex:1 0 auto;max-height:200px;grid-template-rows:1fr 1fr auto}
+  body.fit .compact .day>.slot.noruns{grid-row:1/span 2}
   .compact .lab{width:22px;font-size:11px;padding-top:0}
   .compact .runs{gap:3px}
   .compact .run{gap:4px}
