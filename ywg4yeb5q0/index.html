@@ -117,12 +117,14 @@
   .log{font-size:13px;color:var(--muted);margin:0;padding-left:16px}
   /* Miles driven: a car drives round a little Earth as the club's miles add up */
   .miles{display:flex;align-items:center;gap:14px}
-  .globe{position:relative;flex:none;width:136px;height:136px}
-  .globe .ring{position:absolute;inset:11px;border:2px dashed var(--line);border-radius:50%}
-  .globe svg{position:absolute;inset:24px;width:88px;height:88px}
+  .globe{position:relative;flex:none;width:156px;height:156px}
+  .globe .ring{position:absolute;inset:15px;border:2px dashed var(--line);border-radius:50%}
+  .globe svg{position:absolute;inset:34px;width:88px;height:88px}
   .orbit{position:absolute;inset:0;transition:transform 2.8s cubic-bezier(.3,.7,.25,1)}
-  .orbit span{position:absolute;left:50%;top:0;transform:translateX(-50%);font-size:24px;line-height:1}
+  .orbit span{position:absolute;left:50%;top:0;transform:translateX(-50%);font-size:34px;line-height:1}
   @media (prefers-reduced-motion: reduce){ .orbit{transition:none} }
+  /* Stays in view under the header while the board scrolls */
+  #milesPanel{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--hh,96px));z-index:4;background:var(--bg);padding-block:10px;margin-bottom:0}
   .mtxt{min-width:0}
   .mnum{font-size:30px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
   .mnum small{font-size:16px;font-weight:600;color:var(--muted)}
@@ -177,7 +179,7 @@
   </div>
 </header>
 <div class="wrap">
-  <section class="panel" id="milesPanel" style="padding-top:10px" hidden><div class="box">
+  <section class="panel" id="milesPanel" hidden><div class="box">
     <h3>🚗 Miles driven by the Fun Bus</h3>
     <div class="miles">
       <div class="globe" aria-hidden="true">
@@ -583,6 +585,9 @@ function render(){
 }
 
 // ---------- Miles driven (everyone, all time) ----------
+// The miles box sticks just under the header, so keep its offset matched to the header's height
+{ const hd = document.querySelector("header"), setH = ()=>document.documentElement.style.setProperty("--hh", hd.offsetHeight+"px");
+  setH(); if(window.ResizeObserver) new ResizeObserver(setH).observe(hd); else addEventListener("resize", setH); }
 const MILES_ONE_WAY = 25, RUN_MILES = MILES_ONE_WAY*2, EARTH_MILES = 24901;
 // Runs that have actually happened: a driver, at least one child, a school day, and a start time
 // that has passed. Every car counts, own pickups included: those miles were still driven.
