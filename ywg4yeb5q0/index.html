@@ -53,8 +53,9 @@
   header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--accent);color:var(--on-accent);padding:10px max(14px,env(safe-area-inset-right,0px)) 8px max(14px,env(safe-area-inset-left,0px));box-shadow:0 2px 8px var(--shadow)}
   /* Bedales bee as a faint watermark in the header */
   header{overflow:hidden}
-  header::after{content:"";position:absolute;left:50%;top:50%;height:calc(100% - 10px);aspect-ratio:79/78;transform:translate(-50%,-50%);
-    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 79 78' fill='none'%3E%3Cpath d='M41.2461 29.1199C40.6861 29.2799 40.0961 29.3799 39.4861 29.3799C38.8761 29.3799 38.2861 29.2899 37.7261 29.1299C37.7961 31.1299 37.1961 34.3699 36.0361 37.5899H42.9361C41.7761 34.3699 41.1761 31.1299 41.2461 29.1199Z' fill='%23f4e9d7'/%3E%3Cpath d='M34.2365 41.6399C33.5565 42.8899 32.7865 44.0299 31.9365 44.9899H47.0265C46.1765 44.0399 45.4065 42.8899 44.7265 41.6399H34.2265H34.2365Z' fill='%23f4e9d7'/%3E%3Cpath d='M76.7258 25.7C72.8858 17.46 65.1858 12.67 58.4158 13.78C57.7958 6.09 49.5658 0 39.4858 0C29.4058 0 21.1658 6.09 20.5558 13.78C13.7758 12.68 6.08582 17.46 2.24582 25.7C-2.20418 35.21 0.16582 45.7 7.52582 49.13C7.99582 49.35 8.46582 49.53 8.95582 49.68C5.15582 55.99 7.65582 65.44 15.0858 71.68C23.1258 78.42 33.8658 78.85 39.0858 72.63C39.2258 72.46 39.3458 72.28 39.4758 72.1C39.6058 72.28 39.7258 72.46 39.8658 72.63C45.0858 78.85 55.8358 78.43 63.8658 71.68C71.2958 65.44 73.7958 55.99 69.9958 49.68C70.4758 49.53 70.9558 49.35 71.4258 49.13C78.7858 45.7 81.1558 35.21 76.7258 25.7ZM39.4758 65.76C35.1658 63.98 32.7358 59.8 32.7358 59.8H46.2258C44.4758 62.53 42.1458 64.62 39.4758 65.76ZM47.9258 56.45H31.0258C30.5158 55.17 30.1058 53.81 29.8258 52.39H49.1258C48.8458 53.82 48.4358 55.18 47.9258 56.45ZM61.4358 49.11C58.7258 51.55 53.8258 50.7 49.5758 47.37C49.5758 47.47 49.5758 47.56 49.5758 47.66C49.5758 48.13 49.5658 48.59 49.5358 49.05L29.4058 49.02C29.3858 48.57 29.3658 48.11 29.3658 47.65C29.3658 47.55 29.3658 47.46 29.3658 47.37C25.1058 50.69 20.2158 51.54 17.5058 49.1C14.2458 46.16 15.3858 39.58 20.0558 34.4C23.5858 30.49 30.6358 27.58 34.5658 27.02C33.6958 25.94 33.1658 24.57 33.1658 23.08C33.1658 21 34.1858 19.15 35.7458 18.01C35.3758 16.32 34.0958 15.06 32.5558 15.06V12.44C35.0258 12.44 37.1058 14.36 37.8158 17.02C38.3358 16.88 38.8858 16.8 39.4458 16.8C40.0058 16.8 40.5558 16.88 41.0758 17.02C41.7758 14.37 43.8658 12.44 46.3358 12.44V15.06C44.7958 15.06 43.5058 16.32 43.1458 18.01C44.7058 19.15 45.7258 20.99 45.7258 23.08C45.7258 24.57 45.2058 25.94 44.3358 27.02C48.2658 27.57 55.3258 30.48 58.8558 34.4C63.5258 39.58 64.6658 46.16 61.4058 49.1L61.4358 49.11Z' fill='%23f4e9d7'/%3E%3C/svg%3E") center/contain no-repeat;opacity:.16;pointer-events:none}
+  .top{position:relative;padding-left:64px;min-height:58px}
+  .top::before{content:"";position:absolute;left:0;top:50%;height:58px;aspect-ratio:79/78;transform:translateY(-50%);
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 79 78' fill='none'%3E%3Cpath d='M41.2461 29.1199C40.6861 29.2799 40.0961 29.3799 39.4861 29.3799C38.8761 29.3799 38.2861 29.2899 37.7261 29.1299C37.7961 31.1299 37.1961 34.3699 36.0361 37.5899H42.9361C41.7761 34.3699 41.1761 31.1299 41.2461 29.1199Z' fill='%23f4e9d7'/%3E%3Cpath d='M34.2365 41.6399C33.5565 42.8899 32.7865 44.0299 31.9365 44.9899H47.0265C46.1765 44.0399 45.4065 42.8899 44.7265 41.6399H34.2265H34.2365Z' fill='%23f4e9d7'/%3E%3Cpath d='M76.7258 25.7C72.8858 17.46 65.1858 12.67 58.4158 13.78C57.7958 6.09 49.5658 0 39.4858 0C29.4058 0 21.1658 6.09 20.5558 13.78C13.7758 12.68 6.08582 17.46 2.24582 25.7C-2.20418 35.21 0.16582 45.7 7.52582 49.13C7.99582 49.35 8.46582 49.53 8.95582 49.68C5.15582 55.99 7.65582 65.44 15.0858 71.68C23.1258 78.42 33.8658 78.85 39.0858 72.63C39.2258 72.46 39.3458 72.28 39.4758 72.1C39.6058 72.28 39.7258 72.46 39.8658 72.63C45.0858 78.85 55.8358 78.43 63.8658 71.68C71.2958 65.44 73.7958 55.99 69.9958 49.68C70.4758 49.53 70.9558 49.35 71.4258 49.13C78.7858 45.7 81.1558 35.21 76.7258 25.7ZM39.4758 65.76C35.1658 63.98 32.7358 59.8 32.7358 59.8H46.2258C44.4758 62.53 42.1458 64.62 39.4758 65.76ZM47.9258 56.45H31.0258C30.5158 55.17 30.1058 53.81 29.8258 52.39H49.1258C48.8458 53.82 48.4358 55.18 47.9258 56.45ZM61.4358 49.11C58.7258 51.55 53.8258 50.7 49.5758 47.37C49.5758 47.47 49.5758 47.56 49.5758 47.66C49.5758 48.13 49.5658 48.59 49.5358 49.05L29.4058 49.02C29.3858 48.57 29.3658 48.11 29.3658 47.65C29.3658 47.55 29.3658 47.46 29.3658 47.37C25.1058 50.69 20.2158 51.54 17.5058 49.1C14.2458 46.16 15.3858 39.58 20.0558 34.4C23.5858 30.49 30.6358 27.58 34.5658 27.02C33.6958 25.94 33.1658 24.57 33.1658 23.08C33.1658 21 34.1858 19.15 35.7458 18.01C35.3758 16.32 34.0958 15.06 32.5558 15.06V12.44C35.0258 12.44 37.1058 14.36 37.8158 17.02C38.3358 16.88 38.8858 16.8 39.4458 16.8C40.0058 16.8 40.5558 16.88 41.0758 17.02C41.7758 14.37 43.8658 12.44 46.3358 12.44V15.06C44.7958 15.06 43.5058 16.32 43.1458 18.01C44.7058 19.15 45.7258 20.99 45.7258 23.08C45.7258 24.57 45.2058 25.94 44.3358 27.02C48.2658 27.57 55.3258 30.48 58.8558 34.4C63.5258 39.58 64.6658 46.16 61.4058 49.1L61.4358 49.11Z' fill='%23f4e9d7'/%3E%3C/svg%3E") center/contain no-repeat;opacity:.3;pointer-events:none}
   header>*{position:relative;z-index:1}
   .top{display:flex;align-items:center;justify-content:space-between;gap:8px;max-width:680px;margin:auto}
   h1{font-size:19px;margin:0;display:flex;align-items:center;gap:8px}
@@ -65,11 +66,13 @@
   .me option{color:var(--ink);background:var(--card)}
   /* Keep "Bedales Fun Bus", the status and the name picker on one line on phones */
   h1{white-space:nowrap;min-width:0}
+  .me{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
   @media (max-width:430px){
     h1{font-size:17px;gap:6px}
     .status{font-size:11px;padding:2px 7px}
     .me select{max-width:30vw;padding:5px 8px}
   }
+  @media (max-width:380px){ h1{font-size:15.5px;gap:4px} .top{padding-left:58px} .top::before{height:52px} }
   .weeknav{display:flex;align-items:center;justify-content:space-between;margin:6px auto 0;max-width:680px}
   .weeknav button{background:var(--veil);border:0;color:var(--on-accent);border-radius:8px;padding:4px 12px;font-size:18px;cursor:pointer}
   .weeknav button:disabled{opacity:.35;cursor:default}
@@ -241,8 +244,8 @@
 <body>
 <header>
   <div class="top">
-    <h1>🚌 Bedales Fun Bus <span class="status" id="status"><i></i><span>Connecting…</span></span></h1>
-    <div class="me"><select id="meSel" aria-label="Who are you?" hidden></select></div>
+    <h1>🚌 Bedales Fun Bus</h1>
+    <div class="me"><select id="meSel" aria-label="Who are you?" hidden></select><span class="status" id="status"><i></i><span>Connecting…</span></span></div>
   </div>
   <div class="weeknav">
     <button id="prev" aria-label="Previous week">‹</button>
